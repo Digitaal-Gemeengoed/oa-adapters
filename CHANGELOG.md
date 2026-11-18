@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 0.20.1 — 2026-11-18
+
+- Hangt af van oa-paneel 0.13.0 (Toegankelijkheid: *Alles herstellen*).
+
 ## 0.20.0 (LibreOffice-extensie 0.16.0) — 2026-11-18
 
 Anonimiseren in rekenbladen (LibreOffice Calc en Excel), samen met oa-services 0.6.0:
