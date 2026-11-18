@@ -93,8 +93,9 @@ def _blad_html(blad):
     if rijen and kolommen and not (rijen == 1 and kolommen == 1 and not blad.getCellByPosition(0, 0).getString()):
         data = blad.getCellRangeByPosition(0, 0, kolommen - 1, rijen - 1).getDataArray()
         regels = []
-        for rij in data:
-            regels.append("<tr>%s</tr>" % "".join("<td>%s</td>" % _esc(_celtekst(w)) for w in rij))
+        for r, rij in enumerate(data):
+            # Een getal of datum zoals hij in de cel staat ("04-11-1946", niet 17110).
+            regels.append("<tr>%s</tr>" % "".join("<td>%s</td>" % _esc(blad.getCellByPosition(k, r).getString() if isinstance(w, float) else _celtekst(w)) for k, w in enumerate(rij)))
         delen.append("<table><tbody>%s</tbody></table>" % "".join(regels))
         onderdelen.append(("tabel", None))
     for i, vorm in enumerate(_vormen(blad.getDrawPage())):

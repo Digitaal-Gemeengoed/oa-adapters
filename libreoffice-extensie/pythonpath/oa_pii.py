@@ -431,7 +431,33 @@ def markeer_bladen(document, markeringen):
             c.setString(mk["plaatshouder"])
             c.CharColor = KLEUR.get(int(mk.get("ppl", 1)), KLEUR[1])
             c.CharUnderline = STIPPEL if mk.get("voorvertoning") else 0
+    _markeer_getallen(document, geordend)
     return [p for p in lees_plekken_bladen(document) if p["plek"] not in voor]
+
+
+def _markeer_getallen(document, geordend):
+    """Een cel met een getal of datum (geen formule) die precies een gevonden waarde toont,
+    zoals een geboortedatum: de cel wordt tekst met de plaatshouder."""
+    from oa_bladen import soort_van
+    if soort_van(document) != "rekenblad":
+        return
+    from com.sun.star.sheet.CellFlags import VALUE, DATETIME
+    van = {}
+    for mk in geordend:
+        van.setdefault(mk["van"].strip(), mk)
+    bladen = document.getSheets()
+    for i in range(bladen.getCount()):
+        reeksen = bladen.getByIndex(i).queryContentCells(VALUE | DATETIME)
+        cellen = reeksen.getCells().createEnumeration()
+        while cellen.hasMoreElements():
+            cel = cellen.nextElement()
+            mk = van.get(cel.getString().strip())
+            if mk is None:
+                continue
+            cel.setString(mk["plaatshouder"])
+            c = _cursor(cel, 0, len(mk["plaatshouder"]))
+            c.CharColor = KLEUR.get(int(mk.get("ppl", 1)), KLEUR[1])
+            c.CharUnderline = STIPPEL if mk.get("voorvertoning") else 0
 
 
 def _splits(plek):

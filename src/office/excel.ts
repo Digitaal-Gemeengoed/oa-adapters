@@ -41,7 +41,7 @@ export class ExcelAdapter implements Adapter {
       await ctx.sync();
       const per = bladen.items.map((b) => {
         const bereik = b.getUsedRangeOrNullObject(true);
-        bereik.load("values,rowCount,columnCount");
+        bereik.load("values,text,rowCount,columnCount");
         const grafieken = b.charts;
         grafieken.load("items/name");
         const vormen = this.vormen ? b.shapes : null;
@@ -56,7 +56,9 @@ export class ExcelAdapter implements Adapter {
         const onderdelen: Onderdeel[] = [{ soort: "naam" }];
         if (!bereik.isNullObject && bereik.values.length) {
           const rijen = bereik.values.slice(0, MAX_RIJEN).map((r) => r.slice(0, MAX_KOLOMMEN));
-          delen.push(`<table><tbody>${rijen.map((r) => `<tr>${r.map((c) => `<td>${esc(String(c ?? ""))}</td>`).join("")}</tr>`).join("")}</tbody></table>`);
+          // Een getal of datum zoals hij in de cel staat ("04-11-1946", niet 17110).
+          const getoond = (c: unknown, i: number, j: number) => (typeof c === "number" ? (bereik.text?.[i]?.[j] ?? String(c)) : String(c ?? ""));
+          delen.push(`<table><tbody>${rijen.map((r, i) => `<tr>${r.map((c, j) => `<td>${esc(getoond(c, i, j))}</td>`).join("")}</tr>`).join("")}</tbody></table>`);
           onderdelen.push({ soort: "tabel" });
         }
         for (const v of vormen?.items ?? []) {
@@ -194,6 +196,29 @@ export class ExcelAdapter implements Adapter {
     return uit;
   }
 
+  /** Cellen met een getal of datum (geen formule), met wat de cel toont. */
+  private async getallen(ctx: Excel.RequestContext) {
+    const bladen = ctx.workbook.worksheets;
+    bladen.load("items/id");
+    await ctx.sync();
+    const per = bladen.items.map((b) => {
+      const r = b.getUsedRangeOrNullObject(true);
+      r.load("formulas,text,rowIndex,columnIndex");
+      return { b, r };
+    });
+    await ctx.sync();
+    const uit: { b: Excel.Worksheet; rij: number; kolom: number; tekst: string }[] = [];
+    for (const { b, r } of per) {
+      if (r.isNullObject) continue;
+      r.formulas.forEach((rij, i) =>
+        rij.forEach((cel, j) => {
+          if (typeof cel === "number") uit.push({ b, rij: r.rowIndex + i, kolom: r.columnIndex + j, tekst: String(r.text?.[i]?.[j] ?? cel).trim() });
+        }),
+      );
+    }
+    return uit;
+  }
+
   markeerPii = async (markeringen: PiiMarkering[]): Promise<PiiPlek[]> => {
     const voor = new Set((await this.leesPiiPlekken()).map((p) => p.plek));
     await Excel.run(async (ctx) => {
@@ -203,6 +228,12 @@ export class ExcelAdapter implements Adapter {
         let t = c.tekst;
         for (const x of v) t = t.slice(0, x.begin) + x.m.plaatshouder + t.slice(x.eind);
         c.b.getCell(c.rij, c.kolom).values = [[t]];
+      }
+      // Een getal of datum die precies een gevonden waarde toont (een geboortedatum): de cel wordt tekst.
+      const van = new Map(markeringen.filter((m) => m.van.trim()).map((m) => [m.van.trim(), m]));
+      for (const c of await this.getallen(ctx)) {
+        const m = van.get(c.tekst);
+        if (m) c.b.getCell(c.rij, c.kolom).values = [[m.plaatshouder]];
       }
       await ctx.sync();
     });

@@ -67,7 +67,7 @@ const pptCtx = () => ({
   },
 });
 
-const bladen: { id: string; name: string; waarden: unknown[][] | null; vormen: Vorm[]; grafieken: number }[] = [
+const bladen: { id: string; name: string; waarden: unknown[][] | null; tekst?: string[][]; vormen: Vorm[]; grafieken: number }[] = [
   { id: "s1", name: "Blad1", waarden: [["Post", "Bedrag"], ["Bouw", 1250000]], vormen: [{ id: "p", name: "Picture 1", type: "Image" }], grafieken: 1 },
   { id: "s2", name: "Toelichting", waarden: null, vormen: [], grafieken: 0 },
 ];
@@ -80,7 +80,7 @@ const xlCtx = () => ({
         bladen.map((b) => ({
           get id() { return b.id; },
           get name() { return b.name; },
-          getUsedRangeOrNullObject: () => ({ isNullObject: !b.waarden, values: b.waarden ?? [], formulas: b.waarden ?? [], rowIndex: 0, columnIndex: 0, load: () => undefined }),
+          getUsedRangeOrNullObject: () => ({ isNullObject: !b.waarden, values: b.waarden ?? [], formulas: b.waarden ?? [], text: b.tekst, rowIndex: 0, columnIndex: 0, load: () => undefined }),
           getCell: (r: number, k: number) => ({ set values(w: unknown[][]) { b.waarden![r]![k] = w[0]![0]; } }),
           charts: verzameling(Array.from({ length: b.grafieken }, () => ({}))),
           shapes: verzameling(b.vormen),
@@ -207,6 +207,18 @@ test("Excel: plaatshouders in cellen markeren, lezen, per plek terugzetten", asy
   assert.deepEqual((await a.leesPiiPlekken()).map((p) => p.plaatshouder), ["[PERSOON 1]"]);
   assert.ok(a.werkomgeving().vermogens.includes("pii-markeren"));
   bladen[1]!.waarden = null;
+});
+
+test("Excel: een datum zoals de cel hem toont, en markeren in een cel met een getal", async () => {
+  const a = new ExcelAdapter(() => undefined);
+  bladen[1]!.waarden = [["Geboortedatum", "Aantal", "Som"], [17110, 1946, "=B2"]];
+  bladen[1]!.tekst = [["Geboortedatum", "Aantal", "Som"], ["04-11-1946", "1946", "1946"]];
+  assert.ok((await a.leverInhoud()).data.includes("<tr><td>04-11-1946</td><td>1946</td><td>=B2</td></tr>"));
+  const nieuw = await a.markeerPii([{ van: "04-11-1946", plaatshouder: "[GEBOORTEDATUM 1]", ppl: 1, voorvertoning: true }]);
+  assert.deepEqual(nieuw.map((p) => p.plaatshouder), ["[GEBOORTEDATUM 1]"]);
+  assert.deepEqual(bladen[1]!.waarden![1], ["[GEBOORTEDATUM 1]", 1946, "=B2"]);
+  bladen[1]!.waarden = null;
+  delete bladen[1]!.tekst;
 });
 
 test("PowerPoint: plaatshouders in tekstvakken markeren en terugzetten", async () => {

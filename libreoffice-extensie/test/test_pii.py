@@ -150,6 +150,41 @@ class TestPiiBladen(unittest.TestCase):
         finally:
             doc.close(True)
 
+    def test_calc_datum_en_getal(self):
+        """Een datum of getal in een cel: in de html zoals hij er staat, en te markeren."""
+        import oa_bladen
+        from com.sun.star.lang import Locale
+        doc = self.desktop.loadComponentFromURL("private:factory/scalc", "_blank", 0, (p("Hidden", True),))
+        try:
+            b = doc.getSheets().getByIndex(0)
+            b.getCellByPosition(0, 0).setString("Geboortedatum")
+            b.getCellByPosition(1, 0).setString("Aantal")
+            cel = b.getCellByPosition(0, 1)
+            cel.setValue(17110)  # 4 november 1946
+            formaten = doc.getNumberFormats()
+            nl = Locale("nl", "NL", "")
+            sleutel = formaten.queryKey("DD-MM-YYYY", nl, False)
+            if sleutel == -1:
+                sleutel = formaten.addNew("DD-MM-YYYY", nl)
+            cel.NumberFormat = sleutel
+            b.getCellByPosition(1, 1).setValue(1946)
+            b.getCellByPosition(1, 2).setFormula("=B2")
+            html, _ = oa_bladen._blad_html(b)
+            self.assertIn("<td>04-11-1946</td>", html)
+            nieuw = op.markeer_bladen(doc, [
+                {"van": "04-11-1946", "plaatshouder": "[GEBOORTEDATUM 1]", "ppl": 1, "voorvertoning": True},
+            ])
+            self.assertEqual(cel.getString(), "[GEBOORTEDATUM 1]")
+            self.assertEqual([x["plaatshouder"] for x in nieuw], ["[GEBOORTEDATUM 1]"])
+            self.assertEqual(cel.CharUnderline, op.STIPPEL)
+            # Een getal dat niet gevonden is, en een formule, blijven wat ze zijn.
+            self.assertEqual(b.getCellByPosition(1, 1).getValue(), 1946)
+            self.assertEqual(b.getCellByPosition(1, 2).getFormula(), "=B2")
+            op.herstel_bladen(doc, [{"plek": nieuw[0]["plek"], "waarde": "04-11-1946"}])
+            self.assertEqual(cel.getString(), "04-11-1946")
+        finally:
+            doc.close(True)
+
     def test_impress(self):
         from com.sun.star.awt import Point, Size
         doc = self.desktop.loadComponentFromURL("private:factory/simpress", "_blank", 0, (p("Hidden", True),))

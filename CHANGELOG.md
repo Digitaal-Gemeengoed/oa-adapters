@@ -1,5 +1,12 @@
 # Wijzigingen
 
+## 0.20.0 (LibreOffice-extensie 0.16.0) — 2026-11-18
+
+Anonimiseren in rekenbladen (LibreOffice Calc en Excel), samen met oa-services 0.6.0:
+
+- **Datums en getallen zoals de cel ze toont.** Een cel met een datum ging als dagnummer naar de Assistent (17110 in plaats van 04-11-1946), zodat een geboortedatum niet te herkennen was. Nu gaat de getoonde tekst mee.
+- **Plaatshouders ook in cellen met een datum of getal.** Toont zo'n cel precies een gevonden waarde (een geboortedatum), dan wordt de cel tekst met de plaatshouder. Formules blijven staan. Terugzetten zet de waarde als tekst terug.
+
 ## 0.19.0 — 2026-11-10
 
 - Een laadscherm in de pagina zelf (demo-werkomgeving, Word, LibreOffice): zichtbaar zodra de pagina er is, ook als de Assistent over een trage (mobiele) verbinding nog binnenkomt. Daarna neemt het paneel het over met een voortgangsbalk.
