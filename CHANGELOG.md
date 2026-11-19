@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 0.20.2 — 2026-11-19
+
+- Hangt af van oa-paneel 0.14.0 (Classificeren: kiezen in stappen).
+
 ## 0.20.1 — 2026-11-18
 
 - Hangt af van oa-paneel 0.13.0 (Toegankelijkheid: *Alles herstellen*).
