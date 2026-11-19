@@ -1,5 +1,10 @@
 # Wijzigingen
 
+## 0.20.3 — 2026-11-19
+
+- Hangt af van oa-contract 0.9.0.
+- Hangt af van oa-paneel 0.15.0 (Classificeren: klasse van de zaak, ondersteunende stukken, zoektermen).
+
 ## 0.20.2 — 2026-11-19
 
 - Hangt af van oa-paneel 0.14.0 (Classificeren: kiezen in stappen).
