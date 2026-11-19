@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 0.20.6 — 2026-11-19
+
+- oa-paneel 0.18.0: een vastgelegde classificatie met het model van toen.
+
 ## 0.20.5 — 2026-11-19
 
 - oa-paneel 0.17.0 (standaardattributen), oa-contract 0.11.0.
