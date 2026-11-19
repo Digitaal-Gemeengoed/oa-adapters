@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 0.20.4 — 2026-11-19
+
+- oa-paneel 0.16.0 (ondersteunend met toetsvragen en categorieën), oa-contract 0.10.0.
+
 ## 0.20.3 — 2026-11-19
 
 - Hangt af van oa-contract 0.9.0.
