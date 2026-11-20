@@ -1,4 +1,4 @@
-import type { Inhoud, PiiMarkering, PiiPlek, Ppl } from "@digitaalgemeengoed/oa-contract";
+import type { Documenteigenschappen, Inhoud, PiiMarkering, PiiPlek, Ppl, Standaardeigenschap } from "@digitaalgemeengoed/oa-contract";
 import type { Tekstverwerker } from "../structuur-adapter.js";
 import { groepeer, type Blok, type Doel, type Opdracht, type RuweAlinea, type Tabel } from "../semantisch.js";
 
@@ -150,6 +150,13 @@ export class LibreOfficeTekstverwerker implements Tekstverwerker {
   async leesEigenschap(naam: string): Promise<string | null> {
     return (await this.vraag<{ waarde: string | null }>("GET", `/eigenschap?naam=${encodeURIComponent(naam)}`)).waarde;
   }
+
+  /** Bestand → Eigenschappen: titel, onderwerp, trefwoorden, auteur, omschrijving, taal, en de eigen eigenschappen. */
+  leesEigenschappen = (): Promise<Documenteigenschappen> => this.vraag<Documenteigenschappen>("GET", "/eigenschappen");
+
+  schrijfStandaardeigenschap = async (naam: Standaardeigenschap, waarde: string): Promise<void> => {
+    await this.vraag("PUT", "/standaardeigenschap", { naam, waarde });
+  };
 
   async schrijfEigenschap(naam: string, waarde: string): Promise<void> {
     await this.vraag("PUT", "/eigenschap", { naam, waarde });

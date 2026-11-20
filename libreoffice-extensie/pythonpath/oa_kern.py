@@ -38,6 +38,47 @@ ROL_VERSIE_1 = {
 }
 
 
+# De rollen in de basismodellen (oa-contract: METADATAMODELLEN, velden met een rol):
+# (sleutel, element) -> rol. Bijhouden met het contract; de kruistest bewaakt dat.
+ROL_IN_MODEL = {
+    "mdto": {
+        ("naam", "naam"): "titel",
+        ("omschrijving", "omschrijving"): "omschrijving",
+        ("informatiecategorie", "informatiecategorie"): "informatiecategorie",
+        ("beperkingGebruik", "beperkingGebruik"): "vertrouwelijkheid",
+        ("taal", "taal"): "taal",
+        ("trefwoord", "trefwoord"): "trefwoorden",
+        ("isOnderdeelVan", "isOnderdeelVan"): "dossier",
+        ("zaak", "—"): "zaak",
+        ("betrokkene", "betrokkene"): "auteur",
+        ("gebeurtenisDatum", "event (datum)"): "datum",
+    },
+    "rgbz": {
+        ("titel", "titel"): "titel",
+        ("beschrijving", "beschrijving"): "omschrijving",
+        ("vertrouwelijkheidaanduiding", "vertrouwelijkheidaanduiding"): "vertrouwelijkheid",
+        ("auteur", "auteur"): "auteur",
+        ("creatiedatum", "creatiedatum"): "datum",
+        ("status", "status"): "status",
+        ("taal", "taal"): "taal",
+        ("zaak", "zaakinformatieobject.zaak"): "zaak",
+        ("trefwoorden", "trefwoorden"): "trefwoorden",
+        ("informatiecategorie", "—"): "informatiecategorie",
+    },
+    "tmlo": {
+        ("naam", "naam"): "titel",
+        ("omschrijving", "omschrijving"): "omschrijving",
+        ("vertrouwelijkheid", "vertrouwelijkheid.classificatieNiveau"): "vertrouwelijkheid",
+        ("taal", "taal"): "taal",
+        ("eventDatum", "eventGeschiedenis.datumOfPeriode"): "datum",
+        ("actor", "context.actor"): "auteur",
+        ("relatie", "relatie"): "dossier",
+        ("zaak", "—"): "zaak",
+        ("informatiecategorie", "—"): "informatiecategorie",
+    },
+}
+
+
 def rollen_van(schema):
     """Welke sleutel welke rol heeft (oa-contract: rollenVan)."""
     props = (schema or {}).get("properties") or {}
@@ -47,6 +88,17 @@ def rollen_van(schema):
         rol = e.get("x-oa-rol") if heeft else ROL_VERSIE_1.get(sleutel)
         if rol and rol not in uit:
             uit[rol] = sleutel
+    # Een rol die later in de catalogus kwam (zoals status), geldt ook voor een
+    # ouder schema: via het element uit het basismodel, als geen ander veld die rol heeft.
+    model = ROL_IN_MODEL.get((schema or {}).get("x-oa-model") or "")
+    if model and heeft:
+        basis = schema["x-oa-model"]
+        for sleutel, e in props.items():
+            if e.get("x-oa-rol") or e.get("x-oa-eigen"):
+                continue
+            rol = model.get((sleutel, e.get("x-" + basis)))
+            if rol and rol not in uit:
+                uit[rol] = sleutel
     return uit
 
 
@@ -226,7 +278,9 @@ def inline_volgorde(a):
 
 def _alinea_html(a):
     tag = "h%d" % min(a["niveau"], 6) if a["niveau"] > 0 else "p"
-    return "<%s>%s</%s>" % (tag, _inhoud(a), tag)
+    # Het opmaakprofiel Titel: een kop 1, herkenbaar als titel (zie het contract).
+    titel = ' data-oa-stijl="titel"' if a.get("titel") and tag == "h1" else ""
+    return "<%s%s>%s</%s>" % (tag, titel, _inhoud(a), tag)
 
 
 def _tabel_html(t):
@@ -331,7 +385,10 @@ def segment_naar_opdracht(blokken, pad, html):
     tag = el.tag
     if j is None:
         if blok["soort"] == "alinea" and re.match(r"^(h[1-6]|p)$", tag):
-            return {"soort": "niveau", "alinea": blok["bron"], "niveau": 0 if tag == "p" else int(tag[1]), "tekst": blok["tekst"]}
+            o = {"soort": "niveau", "alinea": blok["bron"], "niveau": 0 if tag == "p" else int(tag[1]), "tekst": blok["tekst"]}
+            if tag == "h1" and (el.attrs or {}).get("data-oa-stijl") == "titel":
+                o["titel"] = True
+            return o
         if blok["soort"] == "tabel" and tag == "table" and el.th:
             return {"soort": "tabelkop", "tabel": blok["bron"]}
         raise NietUitvoerbaar(HANDMATIG)
@@ -417,6 +474,11 @@ def _tag_op_pad(blokken, pad):
     return "img" if volgorde[index]["soort"] == "afbeelding" else "a"
 
 
+def _is_titelblok(blokken, pad):
+    d = pad_delen(pad)
+    return len(d) == 1 and d[0] < len(blokken) and blokken[d[0]]["soort"] == "alinea" and bool(blokken[d[0]].get("titel"))
+
+
 def herstel_opdracht(blokken, bevinding, antwoord=None):
     """
     De opdracht voor Writer die één bevinding herstelt. Zelfde uitkomst als
@@ -431,6 +493,11 @@ def herstel_opdracht(blokken, bevinding, antwoord=None):
     if w["soort"] == "vervang":
         return segment_naar_opdracht(blokken, pad, w["html"])
     tag = _tag_op_pad(blokken, pad)
+    if tag == "h1" and _is_titelblok(blokken, pad):
+        # Het element houdt zijn opmaakprofiel Titel, zoals pasToe in TypeScript.
+        if w["soort"] == "attribuut":
+            return segment_naar_opdracht(blokken, pad, '<h1 data-oa-stijl="titel" %s="%s"></h1>' % (w["naam"], _esc_attr(w["waarde"])))
+        return segment_naar_opdracht(blokken, pad, '<h1 data-oa-stijl="titel">%s</h1>' % _esc(w["waarde"]))
     if w["soort"] == "attribuut":
         html = "<%s %s=\"%s\">" % (tag, w["naam"], _esc_attr(w["waarde"])) if tag == "img" else "<%s %s=\"%s\"></%s>" % (tag, w["naam"], _esc_attr(w["waarde"]), tag)
     else:

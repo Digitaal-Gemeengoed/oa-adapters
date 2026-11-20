@@ -2,12 +2,14 @@ import {
   BASISVERMOGENS,
   type Adapter,
   type Afdruk,
+  type Documenteigenschappen,
   type Inhoud,
   type Melding,
   type PiiMarkering,
   type PiiPlek,
   type Ppl,
   type Plek,
+  type Standaardeigenschap,
   type Vermogen,
   type Werkomgeving,
 } from "@digitaalgemeengoed/oa-contract";
@@ -45,6 +47,8 @@ export interface Tekstverwerker {
   toonPiiPlek?(plek: string): void;
   bijPiiKlik?(terugroep: (p: PiiPlek) => void): () => void;
   schrijfDocumenteigenschap?(naam: string, waarde: string): Promise<void>;
+  leesEigenschappen?(): Promise<Documenteigenschappen>;
+  schrijfStandaardeigenschap?(naam: Standaardeigenschap, waarde: string): Promise<void>;
 }
 
 const AFDRUK = "oa-afdruk";
@@ -91,6 +95,8 @@ export class StructuurAdapter implements Adapter {
       if (tv.bijPiiKlik) this.bijPiiKlik = (t) => tv.bijPiiKlik!(t);
     }
     if (tv.schrijfDocumenteigenschap) this.schrijfDocumenteigenschap = (n, w) => tv.schrijfDocumenteigenschap!(n, w);
+    if (tv.leesEigenschappen) this.leesEigenschappen = () => tv.leesEigenschappen!();
+    if (tv.schrijfStandaardeigenschap) this.schrijfStandaardeigenschap = (n, w) => tv.schrijfStandaardeigenschap!(n, w);
   }
 
   readonly markeerPii?: Adapter["markeerPii"];
@@ -101,6 +107,8 @@ export class StructuurAdapter implements Adapter {
   readonly toonPiiPlek?: Adapter["toonPiiPlek"];
   readonly bijPiiKlik?: Adapter["bijPiiKlik"];
   readonly schrijfDocumenteigenschap?: Adapter["schrijfDocumenteigenschap"];
+  readonly leesEigenschappen?: Adapter["leesEigenschappen"];
+  readonly schrijfStandaardeigenschap?: Adapter["schrijfStandaardeigenschap"];
 
   readonly vervangTekst?: (paren: { van: string; naar: string }[]) => Promise<number>;
   readonly leesSelectie?: () => Promise<string>;
@@ -116,6 +124,8 @@ export class StructuurAdapter implements Adapter {
     if (this.markeerPii) vermogens.push("pii-markeren");
     if (this.bijPiiKlik) vermogens.push("pii-klik");
     if (this.schrijfDocumenteigenschap) vermogens.push("eigenschap-schrijven");
+    if (this.leesEigenschappen) vermogens.push("eigenschappen-lezen");
+    if (this.schrijfStandaardeigenschap) vermogens.push("standaardeigenschap-schrijven");
     return { id: this.tv.id, naam: this.tv.naam, vermogens };
   }
 

@@ -26,6 +26,11 @@ class Gewijzigd(Exception):
     """Het document is veranderd sinds het werd gelezen."""
 
 
+def is_titel(stijl):
+    """Het opmaakprofiel Titel ("Title"; in een Nederlandse LibreOffice ook "Titel")."""
+    return re.sub(r"\s+", "", (stijl or "")).lower() in ("title", "titel")
+
+
 def niveau_uit_stijl(stijl, overzichtsniveau=0):
     s = re.sub(r"\s+", "", (stijl or "")).lower()
     m = KOP.match(s)
@@ -142,6 +147,7 @@ def lees_blokken(document):
         reeks.append({
             "bron": index,
             "niveau": niveau,
+            "titel": is_titel(el.ParaStyleName),
             "tekst": tekst,
             "vet": _heel(el, "CharWeight", lambda w: w >= 150),
             "onderstreept": _heel(el, "CharUnderline", lambda u: u != 0),
@@ -169,7 +175,7 @@ def voer_uit(document, o):
     soort = o["soort"]
     if soort == "niveau":
         el = _alinea(document, o["alinea"], o["tekst"])
-        el.ParaStyleName = "Heading %d" % o["niveau"] if o["niveau"] else "Standard"
+        el.ParaStyleName = "Title" if o.get("titel") else ("Heading %d" % o["niveau"] if o["niveau"] else "Standard")
     elif soort == "tabelkop":
         t = _zoek(document, "tabel", o["tabel"])
         t.RepeatHeadline = True
@@ -293,6 +299,58 @@ def lees_eigenschap(document, naam):
     if eigen.getPropertySetInfo().hasPropertyByName(naam):
         return str(eigen.getPropertyValue(naam))
     return None
+
+
+# Standaardeigenschappen (Bestand → Eigenschappen → Beschrijving). LibreOffice
+# kent geen categorie en status: die gaan als eigen eigenschap mee.
+_STANDAARD = {"titel": "Title", "onderwerp": "Subject", "trefwoorden": "Keywords", "auteur": "Author", "omschrijving": "Description", "taal": "Language"}
+_ALS_EIGEN = {"categorie": "Categorie", "status": "Status"}
+
+
+def lees_eigenschappen(document):
+    dp = document.getDocumentProperties()
+    standaard = {}
+    for naam, veld in _STANDAARD.items():
+        w = getattr(dp, veld, None)
+        if veld == "Keywords":
+            w = ", ".join(x for x in (w or ()) if x)
+        elif veld == "Language":
+            w = "-".join(x for x in (getattr(w, "Language", ""), getattr(w, "Country", "")) if x) if w else ""
+        if w and str(w).strip():
+            standaard[naam] = str(w).strip()
+    eigen = {}
+    props = dp.getUserDefinedProperties()
+    for p in props.getPropertySetInfo().getProperties():
+        if p.Name.startswith("oa-"):
+            continue
+        try:
+            eigen[p.Name] = str(props.getPropertyValue(p.Name))
+        except Exception:
+            pass
+    for naam, label in _ALS_EIGEN.items():
+        if eigen.get(label):
+            standaard[naam] = eigen[label]
+    return {"standaard": standaard, "eigen": eigen}
+
+
+def schrijf_standaardeigenschap(document, naam, waarde):
+    if naam in _ALS_EIGEN:
+        schrijf_eigenschap(document, _ALS_EIGEN[naam], waarde)
+        return
+    veld = _STANDAARD.get(naam)
+    if not veld:
+        return
+    dp = document.getDocumentProperties()
+    if veld == "Keywords":
+        dp.Keywords = tuple(x.strip() for x in waarde.split(",") if x.strip())
+    elif veld == "Language":
+        loc = uno.createUnoStruct("com.sun.star.lang.Locale")
+        delen = re.split(r"[-_]", waarde.strip())
+        loc.Language = delen[0].lower() if delen and delen[0] else ""
+        loc.Country = delen[1].upper() if len(delen) > 1 else ""
+        dp.Language = loc
+    else:
+        setattr(dp, veld, waarde)
 
 
 def schrijf_eigenschap(document, naam, waarde):

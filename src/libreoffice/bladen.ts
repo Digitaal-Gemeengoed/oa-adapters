@@ -20,7 +20,7 @@ export class LibreOfficeBladenAdapter implements Adapter {
 
   werkomgeving(): Werkomgeving {
     const [id, naam] = NAMEN[this.soort];
-    const vermogens: Vermogen[] = [...BASISVERMOGENS, "segment-vervangen", "plek-tonen", "afdruk-schrijven", "bestand-opleveren", "tekst-vervangen", "selectie-lezen", "eigenschap-schrijven"];
+    const vermogens: Vermogen[] = [...BASISVERMOGENS, "segment-vervangen", "plek-tonen", "afdruk-schrijven", "bestand-opleveren", "tekst-vervangen", "selectie-lezen", "eigenschap-schrijven", "eigenschappen-lezen", "standaardeigenschap-schrijven"];
     if (this.markeerPii) vermogens.push("pii-markeren", "pii-klik");
     return { id, naam, vermogens };
   }
@@ -45,6 +45,8 @@ export class LibreOfficeBladenAdapter implements Adapter {
   vervangTekst = (paren: { van: string; naar: string }[]): Promise<number> => this.brug.vervangTekst(paren);
   leesSelectie = (): Promise<string> => this.brug.leesSelectie();
   schrijfDocumenteigenschap = (naam: string, waarde: string): Promise<void> => this.brug.schrijfDocumenteigenschap(naam, waarde);
+  leesEigenschappen: Adapter["leesEigenschappen"] = () => this.brug.leesEigenschappen();
+  schrijfStandaardeigenschap: Adapter["schrijfStandaardeigenschap"] = (naam, waarde) => this.brug.schrijfStandaardeigenschap(naam, waarde);
 
   // Anonimiseren in het document: de plaatshouder staat in de cel of het tekstvak (oa_pii.py).
   // Ontbreekt als de extensie te oud is (zie libreoffice/main.ts).

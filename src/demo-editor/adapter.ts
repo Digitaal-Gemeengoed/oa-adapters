@@ -2,12 +2,14 @@ import {
   BASISVERMOGENS,
   type Adapter,
   type Afdruk,
+  type Documenteigenschappen,
   type Inhoud,
   type Melding,
   type PiiMarkering,
   type PiiPlek,
   type Ppl,
   type Plek,
+  type Standaardeigenschap,
   type Vermogen,
   type Werkomgeving,
 } from "@digitaalgemeengoed/oa-contract";
@@ -27,7 +29,11 @@ export interface DocumentOpslag {
   /** De eigenschappen van het bestand, zoals een tekstverwerker die bij het document bewaart. */
   leesEigenschap(naam: string): string | null;
   schrijfEigenschap(naam: string, waarde: string): void;
+  /** Alle eigenschappen; standaardeigenschappen staan onder "standaard:<naam>". */
+  alleEigenschappen?(): Record<string, string>;
 }
+
+const STANDAARD = "standaard:";
 
 export class DemoEditorAdapter implements Adapter {
   private opslaanTerugroepen = new Set<() => void>();
@@ -50,6 +56,7 @@ export class DemoEditorAdapter implements Adapter {
   werkomgeving(): Werkomgeving {
     const vermogens: Vermogen[] = [...BASISVERMOGENS];
     if (this.soort === "rijk") vermogens.push("segment-vervangen", "plek-tonen", "opslaan-melden", "afdruk-schrijven", "tekst-vervangen", "selectie-lezen", "pii-markeren", "pii-klik", "eigenschap-schrijven");
+    if (this.soort === "rijk" && this.bestand.alleEigenschappen) vermogens.push("eigenschappen-lezen", "standaardeigenschap-schrijven");
     return { id: `demo-editor-${this.soort}`, naam: this.soort === "rijk" ? "Demo-tekstverwerker" : "Demo-tekstverwerker (beperkt)", vermogens };
   }
 
@@ -259,6 +266,24 @@ export class DemoEditorAdapter implements Adapter {
         this.editor.removeEventListener("keydown", luister);
       };
     };
+  }
+
+  get leesEigenschappen(): Adapter["leesEigenschappen"] {
+    if (this.soort !== "rijk" || !this.bestand.alleEigenschappen) return undefined;
+    return async () => {
+      const standaard: Documenteigenschappen["standaard"] = {};
+      const eigen: Record<string, string> = {};
+      for (const [n, w] of Object.entries(this.bestand.alleEigenschappen!())) {
+        if (n.startsWith(STANDAARD)) standaard[n.slice(STANDAARD.length) as Standaardeigenschap] = w;
+        else if (!n.startsWith("oa-")) eigen[n] = w;
+      }
+      return { standaard, eigen };
+    };
+  }
+
+  get schrijfStandaardeigenschap(): Adapter["schrijfStandaardeigenschap"] {
+    if (this.soort !== "rijk" || !this.bestand.alleEigenschappen) return undefined;
+    return async (naam, waarde) => this.bestand.schrijfEigenschap(STANDAARD + naam, waarde);
   }
 
   get schrijfDocumenteigenschap(): Adapter["schrijfDocumenteigenschap"] {

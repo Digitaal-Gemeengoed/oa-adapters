@@ -127,6 +127,20 @@ class Test(unittest.TestCase):
         od.schrijf_eigenschap(self.doc, "oa-afdruk", '{"identificatie":"x","versie":2}')
         self.assertEqual(od.lees_eigenschap(self.doc, "oa-afdruk"), '{"identificatie":"x","versie":2}')
 
+    def test_47_titel_en_eigenschappen(self):
+        od.voer_uit(self.doc, {"soort": "niveau", "alinea": 0, "niveau": 1, "tekst": "Raadsvoorstel fietsenstalling", "titel": True})
+        r = od.lees_blokken(self.doc)
+        a = [x for x in r if x.get("tekst") == "Raadsvoorstel fietsenstalling"][0]
+        self.assertEqual((a["niveau"], a["titel"]), (1, True))
+        for naam, waarde in (("titel", "Raadsvoorstel fietsenstalling"), ("auteur", "Gemeente Voorbeeld"), ("trefwoorden", "fiets, stalling"),
+                             ("omschrijving", "Krediet voor een stalling."), ("taal", "nl-NL"), ("status", "concept"), ("categorie", "raadsstukken")):
+            od.schrijf_standaardeigenschap(self.doc, naam, waarde)
+        e = od.lees_eigenschappen(self.doc)
+        self.assertEqual(e["standaard"], {"titel": "Raadsvoorstel fietsenstalling", "auteur": "Gemeente Voorbeeld", "trefwoorden": "fiets, stalling",
+                                          "omschrijving": "Krediet voor een stalling.", "taal": "nl-NL", "status": "concept", "categorie": "raadsstukken"})
+        self.assertNotIn("oa-afdruk", e["eigen"])
+        self.assertEqual(self.doc.getDocumentProperties().Keywords, ("fiets", "stalling"))
+
     def test_45_bestand(self):
         import base64, zipfile, io
         b = od.bestand(self.doc)

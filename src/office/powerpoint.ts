@@ -2,7 +2,7 @@
 import { BASISVERMOGENS, type Adapter, type Afdruk, type Inhoud, type Melding, type Plek, type Vermogen, type Werkomgeving } from "@digitaalgemeengoed/oa-contract";
 import { heelWoord, ordenParen, PII_KLEUR, plaatshoudersIn, schoonSelectie, vondstenVoorMarkeren, type Paar } from "../tekstvervangen.js";
 import type { PiiMarkering, PiiPlek } from "@digitaalgemeengoed/oa-contract";
-import { eersteElement, esc, HANDMATIG, img, leesAfdrukUitBestand, leesOfficeBestand, NIET_GEVONDEN, padDelen, schrijfAfdrukInBestand } from "./gedeeld.js";
+import { ALS_EIGEN, eersteElement, esc, gedeeldeEigenschappen, HANDMATIG, img, leesAfdrukUitBestand, leesOfficeBestand, NIET_GEVONDEN, OFFICE_VELD, padDelen, schrijfAfdrukInBestand } from "./gedeeld.js";
 
 /** Plaatshouders die een titel zijn. */
 const TITELS = new Set(["Title", "CenterTitle", "VerticalTitle"]);
@@ -61,6 +61,8 @@ export class PowerPointAdapter implements Adapter {
   private readonly selecteren = Office.context.requirements.isSetSupported("PowerPointApi", "1.5");
   /** TextRange.getSubstring: een deel van een tekstvak vervangen zonder de rest van de opmaak te verliezen. */
   private readonly deeltekst = Office.context.requirements.isSetSupported("PowerPointApi", "1.4");
+  /** Documenteigenschappen (PowerPointApi 1.7). */
+  private readonly eigenschappen = Office.context.requirements.isSetSupported("PowerPointApi", "1.7");
 
   constructor(private readonly melden: (m: Melding) => void) {}
 
@@ -69,7 +71,49 @@ export class PowerPointAdapter implements Adapter {
     if (this.selecteren) vermogens.push("plek-tonen", "selectie-lezen");
     if (this.deeltekst) vermogens.push("tekst-vervangen", "pii-markeren");
     if (this.deeltekst && this.selecteren) vermogens.push("pii-klik");
+    if (this.eigenschappen) vermogens.push("eigenschap-schrijven", "eigenschappen-lezen", "standaardeigenschap-schrijven");
     return { id: "powerpoint", naam: "Microsoft PowerPoint", vermogens };
+  }
+
+  get leesEigenschappen(): Adapter["leesEigenschappen"] {
+    if (!this.eigenschappen) return undefined;
+    return () =>
+      PowerPoint.run(async (ctx) => {
+        const p = ctx.presentation.properties;
+        p.load("title,subject,keywords,author,comments,category");
+        p.customProperties.load("items/key,items/value");
+        await ctx.sync();
+        return gedeeldeEigenschappen(p, p.customProperties.items);
+      });
+  }
+
+  get schrijfStandaardeigenschap(): Adapter["schrijfStandaardeigenschap"] {
+    if (!this.eigenschappen) return undefined;
+    return async (naam, waarde) => {
+      const veld = OFFICE_VELD[naam];
+      const label = ALS_EIGEN[naam];
+      if (!veld && label) {
+        await PowerPoint.run(async (ctx) => {
+          ctx.presentation.properties.customProperties.add(label, waarde.slice(0, 255));
+          await ctx.sync();
+        });
+        return;
+      }
+      if (!veld) return;
+      await PowerPoint.run(async (ctx) => {
+        ctx.presentation.properties[veld] = waarde.slice(0, 255);
+        await ctx.sync();
+      });
+    };
+  }
+
+  get schrijfDocumenteigenschap(): Adapter["schrijfDocumenteigenschap"] {
+    if (!this.eigenschappen) return undefined;
+    return async (naam, waarde) =>
+      PowerPoint.run(async (ctx) => {
+        ctx.presentation.properties.customProperties.add(naam, waarde.slice(0, 255));
+        await ctx.sync();
+      });
   }
 
   async leverInhoud(): Promise<Inhoud> {

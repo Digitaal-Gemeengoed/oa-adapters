@@ -1,8 +1,9 @@
 /// <reference types="office-js" />
-import type { Inhoud, PiiMarkering, PiiPlek, Ppl } from "@digitaalgemeengoed/oa-contract";
+import type { Documenteigenschappen, Inhoud, PiiMarkering, PiiPlek, Ppl, Standaardeigenschap } from "@digitaalgemeengoed/oa-contract";
 import { PII_KLEUR } from "../tekstvervangen.js";
+import { ALS_EIGEN, gedeeldeEigenschappen, OFFICE_VELD } from "../office/gedeeld.js";
 import type { Tekstverwerker } from "../structuur-adapter.js";
-import { groepeer, niveauUitStijl, type Blok, type Doel, type Inline, type Opdracht, type RuweAlinea, type Tabel } from "../semantisch.js";
+import { groepeer, isTitelStijl, niveauUitStijl, type Blok, type Doel, type Inline, type Opdracht, type RuweAlinea, type Tabel } from "../semantisch.js";
 
 /**
  * Microsoft Word via Office.js (WordApi 1.3): Word op Windows en Mac en
@@ -61,6 +62,7 @@ export class WordTekstverwerker implements Tekstverwerker {
         reeks.push({
           bron: i,
           niveau: niveauUitStijl(p.styleBuiltIn === "Other" ? p.style : p.styleBuiltIn, p.outlineLevel),
+          ...(isTitelStijl(p.styleBuiltIn === "Other" ? p.style : p.styleBuiltIn) ? { titel: true } : {}),
           tekst,
           vet: p.font.bold === true,
           onderstreept: !!p.font.underline && p.font.underline !== "None",
@@ -91,7 +93,7 @@ export class WordTekstverwerker implements Tekstverwerker {
       switch (o.soort) {
         case "niveau": {
           const p = alinea(o.alinea, o.tekst);
-          p.styleBuiltIn = (o.niveau ? `Heading${o.niveau}` : "Normal") as Word.BuiltInStyleName;
+          p.styleBuiltIn = (o.titel ? "Title" : o.niveau ? `Heading${o.niveau}` : "Normal") as Word.BuiltInStyleName;
           break;
         }
         case "tabelkop": {
@@ -343,6 +345,28 @@ export class WordTekstverwerker implements Tekstverwerker {
   /** Een eigen documenteigenschap (Bestand → Info → Eigenschappen → Geavanceerd). */
   schrijfDocumenteigenschap(naam: string, waarde: string): Promise<void> {
     return this.schrijfEigenschap(naam, waarde);
+  }
+
+  /** De standaard- en eigen eigenschappen (Bestand → Info → Eigenschappen). Word kent via Office.js geen taal en status. */
+  async leesEigenschappen(): Promise<Documenteigenschappen> {
+    return Word.run(async (ctx) => {
+      const p = ctx.document.properties;
+      p.load("title,subject,keywords,author,comments,category");
+      p.customProperties.load("items/key,items/value");
+      await ctx.sync();
+      return gedeeldeEigenschappen(p, p.customProperties.items);
+    });
+  }
+
+  async schrijfStandaardeigenschap(naam: Standaardeigenschap, waarde: string): Promise<void> {
+    const veld = OFFICE_VELD[naam];
+    const label = ALS_EIGEN[naam];
+    if (!veld && label) return this.schrijfEigenschap(label, waarde);
+    if (!veld) return;
+    await Word.run(async (ctx) => {
+      ctx.document.properties[veld] = waarde.slice(0, 255);
+      await ctx.sync();
+    });
   }
 
   async leesEigenschap(naam: string): Promise<string | null> {

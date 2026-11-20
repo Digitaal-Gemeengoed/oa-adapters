@@ -51,6 +51,7 @@ const eigenschappen: DocumentOpslag = {
     bestand.eigenschappen[naam] = waarde;
     bewaar();
   },
+  alleEigenschappen: () => ({ ...bestand.eigenschappen }),
 };
 
 let statusTimer: number | undefined;
@@ -117,7 +118,16 @@ document.querySelectorAll<HTMLButtonElement>("[data-opdracht]").forEach((k) =>
   k.addEventListener("click", () => {
     editor.focus();
     const [opdracht, waarde] = k.dataset.opdracht!.split(":");
-    document.execCommand(opdracht, false, waarde);
+    // "Titel" is een kop 1 met het opmaakprofiel Titel (data-oa-stijl, zie het contract).
+    document.execCommand(opdracht === "titel" ? "formatBlock" : opdracht, false, opdracht === "titel" ? "h1" : waarde);
+    if (opdracht === "formatBlock" || opdracht === "titel") {
+      let n: Node | null = document.getSelection()?.anchorNode ?? null;
+      while (n && n.parentNode !== editor) n = n.parentNode;
+      if (n instanceof HTMLElement) {
+        if (opdracht === "titel") n.setAttribute("data-oa-stijl", "titel");
+        else n.removeAttribute("data-oa-stijl");
+      }
+    }
   }),
 );
 

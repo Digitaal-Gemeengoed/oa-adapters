@@ -2,7 +2,7 @@
 import { BASISVERMOGENS, type Adapter, type Afdruk, type Inhoud, type Melding, type Plek, type Vermogen, type Werkomgeving } from "@digitaalgemeengoed/oa-contract";
 import { plaatshoudersIn, schoonSelectie, vervangInTekst, vondstenVoorMarkeren, type Paar } from "../tekstvervangen.js";
 import type { PiiMarkering, PiiPlek } from "@digitaalgemeengoed/oa-contract";
-import { eersteElement, esc, HANDMATIG, img, leesAfdrukUitBestand, leesOfficeBestand, NIET_GEVONDEN, padDelen, schrijfAfdrukInBestand } from "./gedeeld.js";
+import { ALS_EIGEN, eersteElement, esc, gedeeldeEigenschappen, HANDMATIG, img, leesAfdrukUitBestand, leesOfficeBestand, NIET_GEVONDEN, OFFICE_VELD, padDelen, schrijfAfdrukInBestand } from "./gedeeld.js";
 
 const MAX_RIJEN = 200;
 const MAX_KOLOMMEN = 30;
@@ -30,7 +30,7 @@ export class ExcelAdapter implements Adapter {
 
   werkomgeving(): Werkomgeving {
     const vermogens: Vermogen[] = [...BASISVERMOGENS, "segment-vervangen", "plek-tonen", "afdruk-schrijven", "bestand-opleveren", "tekst-vervangen", "selectie-lezen", "pii-markeren", "pii-klik"];
-    if (this.eigenschappen) vermogens.push("eigenschap-schrijven");
+    if (this.eigenschappen) vermogens.push("eigenschap-schrijven", "eigenschappen-lezen", "standaardeigenschap-schrijven");
     return { id: "excel", naam: "Microsoft Excel", vermogens };
   }
 
@@ -311,6 +311,38 @@ export class ExcelAdapter implements Adapter {
         ctx.workbook.properties.custom.add(naam, waarde.slice(0, 255));
         await ctx.sync();
       });
+  }
+
+  get leesEigenschappen(): Adapter["leesEigenschappen"] {
+    if (!this.eigenschappen) return undefined;
+    return () =>
+      Excel.run(async (ctx) => {
+        const p = ctx.workbook.properties;
+        p.load("title,subject,keywords,author,comments,category");
+        p.custom.load("items/key,items/value");
+        await ctx.sync();
+        return gedeeldeEigenschappen(p, p.custom.items);
+      });
+  }
+
+  get schrijfStandaardeigenschap(): Adapter["schrijfStandaardeigenschap"] {
+    if (!this.eigenschappen) return undefined;
+    return async (naam, waarde) => {
+      const veld = OFFICE_VELD[naam];
+      const label = ALS_EIGEN[naam];
+      if (!veld && label) {
+        await Excel.run(async (ctx) => {
+          ctx.workbook.properties.custom.add(label, waarde.slice(0, 255));
+          await ctx.sync();
+        });
+        return;
+      }
+      if (!veld) return;
+      await Excel.run(async (ctx) => {
+        ctx.workbook.properties[veld] = waarde.slice(0, 255);
+        await ctx.sync();
+      });
+    };
   }
 
   /** Excel geeft geen deel van een cel als selectie; de geselecteerde cellen met tekst. */

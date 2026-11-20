@@ -1,5 +1,15 @@
 # Wijzigingen
 
+## 0.21.0 — 2026-11-20
+
+**Documenteigenschappen en het opmaakprofiel Titel.** Ontwerp: `oa-uitrol/docs/ontwerp/documenteigenschappen.md`.
+- Word en LibreOffice Writer: een regel met het opmaakprofiel Titel gaat naar `<h1 data-oa-stijl="titel">` en bij herstel terug naar Titel.
+- Word, Excel (ExcelApi 1.7), PowerPoint (PowerPointApi 1.7) en LibreOffice: `leesEigenschappen` en `schrijfStandaardeigenschap`. Wat de werkomgeving niet als standaardeigenschap kent, gaat als eigen eigenschap mee: in Office taal en status, in LibreOffice categorie en status.
+- LibreOffice-extensie 0.17.0: routes `GET /eigenschappen` en `PUT /standaardeigenschap` in de brug; de Python-kern volgt de rollen uit het basismodel (zoals status bij een ouder schema) en houdt het profiel Titel bij een herstel.
+- Demo-tekstverwerker: knop **Titel** in de werkbalk; het voorbeelddocument heeft een titel.
+- Collabora krijgt de nieuwe vermogens niet; de assistent valt daar zichtbaar terug.
+- oa-contract 0.13.0, oa-paneel 0.21.0.
+
 ## 0.20.8 — 2026-11-20
 
 - oa-paneel 0.20.0 (huisstijl van de inrichting).

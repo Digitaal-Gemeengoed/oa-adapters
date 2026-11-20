@@ -104,3 +104,13 @@ test("StructuurAdapter: html, segment als opdracht, afdruk in de eigenschappen",
   assert.deepEqual(await a.leesAfdruk(), { identificatie: "x", versie: 2, objecttype: "document" });
   await assert.rejects(a.vervangSegment({ pad: "body/4", beschrijving: "Lijst" }, "<ol></ol>"), /nog niet automatisch/);
 });
+
+test("het opmaakprofiel Titel gaat als kop 1 met data-oa-stijl heen en terug", () => {
+  const b = groepeer([
+    { bron: 0, niveau: 1, titel: true, tekst: "Raadsvoorstel" },
+    { bron: 1, niveau: 1, tekst: "Aanleiding" },
+  ]);
+  assert.equal(naarHtml(b), '<h1 data-oa-stijl="titel">Raadsvoorstel</h1>\n<h1>Aanleiding</h1>');
+  assert.deepEqual(segmentNaarOpdracht(b, "body/1", '<h1 data-oa-stijl="titel">Aanleiding</h1>', fragment), { soort: "niveau", alinea: 1, niveau: 1, tekst: "Aanleiding", titel: true });
+  assert.deepEqual(segmentNaarOpdracht(b, "body/0", "<h1>Raadsvoorstel</h1>", fragment), { soort: "niveau", alinea: 0, niveau: 1, tekst: "Raadsvoorstel" });
+});

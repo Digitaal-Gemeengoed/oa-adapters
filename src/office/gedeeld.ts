@@ -1,5 +1,5 @@
 /// <reference types="office-js" />
-import type { Afdruk, Inhoud } from "@digitaalgemeengoed/oa-contract";
+import type { Afdruk, Documenteigenschappen, Inhoud, Standaardeigenschap } from "@digitaalgemeengoed/oa-contract";
 
 /**
  * Wat Word, Excel en PowerPoint delen: het bestand opleveren, de afdruk in
@@ -87,3 +87,37 @@ export function padDelen(pad: string): number[] {
 
 export const NIET_GEVONDEN = "Dit deel van het document is niet meer gevonden. Beoordeel opnieuw.";
 export const HANDMATIG = "Deze wijziging kan hier nog niet automatisch. Pas het met de hand aan.";
+
+// ---------------------------------------------------------------------------
+// Documenteigenschappen (Excel en PowerPoint; Word heeft dezelfde velden)
+// ---------------------------------------------------------------------------
+
+/** Welk veld van Office.js bij een standaardeigenschap hoort. Taal en status kent Office.js niet. */
+export const OFFICE_VELD: Partial<Record<Standaardeigenschap, "title" | "subject" | "keywords" | "author" | "comments" | "category">> = {
+  titel: "title",
+  onderwerp: "subject",
+  trefwoorden: "keywords",
+  auteur: "author",
+  omschrijving: "comments",
+  categorie: "category",
+};
+
+/** Taal en status kent Office.js niet als eigenschap: die gaan als eigen eigenschap mee (zoals in LibreOffice categorie en status). */
+export const ALS_EIGEN: Partial<Record<Standaardeigenschap, string>> = { taal: "Taal", status: "Status" };
+
+/** De standaardeigenschappen en de eigen eigenschappen (zonder die van de assistent zelf, zoals oa-afdruk). */
+export function gedeeldeEigenschappen(
+  p: { title?: string; subject?: string; keywords?: string; author?: string; comments?: string; category?: string },
+  eigen: { key: string; value: unknown }[],
+): Documenteigenschappen {
+  const standaard: Documenteigenschappen["standaard"] = {};
+  for (const [naam, veld] of Object.entries(OFFICE_VELD) as [Standaardeigenschap, keyof typeof p][]) {
+    const w = p[veld];
+    if (typeof w === "string" && w.trim()) standaard[naam] = w.trim();
+  }
+  const eigenWaarden: Record<string, string> = Object.fromEntries(eigen.filter((e) => !e.key.startsWith("oa-")).map((e) => [e.key, String(e.value)]));
+  for (const [naam, label] of Object.entries(ALS_EIGEN) as [Standaardeigenschap, string][]) {
+    if (eigenWaarden[label]?.trim()) standaard[naam] = eigenWaarden[label]!.trim();
+  }
+  return { standaard, eigen: eigenWaarden };
+}

@@ -251,6 +251,11 @@ class Brug:
             if methode == "POST" and pad == "/pii/toon":
                 h(lambda: (op.toon if w else op.toon_bladen)(doc, lichaam["plek"]))
                 return {}
+        if methode == "GET" and pad == "/eigenschappen":
+            return h(lambda: od.lees_eigenschappen(doc))
+        if methode == "PUT" and pad == "/standaardeigenschap":
+            h(lambda: od.schrijf_standaardeigenschap(doc, lichaam["naam"], lichaam["waarde"]))
+            return {}
         if pad == "/eigenschap":
             if methode == "GET":
                 from urllib.parse import parse_qs, urlparse

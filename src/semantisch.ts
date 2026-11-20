@@ -37,6 +37,8 @@ export interface Alinea {
   bron: number;
   /** 0 = gewone alinea, 1–6 = kop. */
   niveau: number;
+  /** Het opmaakprofiel Titel: een kop 1, met data-oa-stijl="titel" in de html. */
+  titel?: boolean;
   tekst: string;
   /** De hele alinea vet (en geen kop): vaak een kop die geen kop is. */
   vet?: boolean;
@@ -144,7 +146,8 @@ export function inlineVolgorde(a: Alinea): Inline[] {
 
 function alineaHtml(a: Alinea, tag?: string): string {
   const t = tag ?? (a.niveau > 0 ? `h${Math.min(a.niveau, 6)}` : "p");
-  return `<${t}>${inhoudVan(a)}</${t}>`;
+  const titel = !tag && a.titel && t === "h1" ? ' data-oa-stijl="titel"' : "";
+  return `<${t}${titel}>${inhoudVan(a)}</${t}>`;
 }
 
 function tabelHtml(t: Tabel): string {
@@ -173,7 +176,7 @@ export function naarHtml(blokken: Blok[]): string {
 // ---------------------------------------------------------------------------
 
 export type Opdracht =
-  | { soort: "niveau"; alinea: number; niveau: number; tekst: string }
+  | { soort: "niveau"; alinea: number; niveau: number; tekst: string; titel?: boolean }
   | { soort: "tabelkop"; tabel: number }
   | { soort: "alt"; alinea: number; afbeelding: number; alt: string; tekst: string }
   | { soort: "linktekst"; alinea: number; link: number; tekst: string; href: string; alineatekst: string };
@@ -210,7 +213,8 @@ export function segmentNaarOpdracht(blokken: Blok[], pad: string, html: string, 
 
   if (j === undefined) {
     if (blok.soort === "alinea" && /^(h[1-6]|p)$/.test(tag)) {
-      return { soort: "niveau", alinea: blok.bron, niveau: tag === "p" ? 0 : Number(tag[1]), tekst: blok.tekst };
+      const titel = tag === "h1" && el.getAttribute("data-oa-stijl") === "titel";
+      return { soort: "niveau", alinea: blok.bron, niveau: tag === "p" ? 0 : Number(tag[1]), tekst: blok.tekst, ...(titel ? { titel } : {}) };
     }
     if (blok.soort === "tabel" && tag === "table" && el.querySelector("th")) return { soort: "tabelkop", tabel: blok.bron };
     throw new NietUitvoerbaar("Deze wijziging kan in deze tekstverwerker nog niet automatisch. Pas het met de hand aan.");
@@ -251,6 +255,12 @@ export function plekNaarDoel(blokken: Blok[], pad: string): Doel | null {
   const doel = inlineVolgorde(alinea)[idx];
   if (!doel) return { soort: "alinea", alinea: alinea.bron };
   return doel.soort === "afbeelding" ? { soort: "afbeelding", alinea: alinea.bron, afbeelding: doel.index } : { soort: "link", alinea: alinea.bron, link: doel.index };
+}
+
+/** Het opmaakprofiel Titel, in Word ("Title") en LibreOffice ("Title", "Titel"). */
+export function isTitelStijl(stijl: string | undefined | null): boolean {
+  const s = (stijl ?? "").replace(/\s+/g, "").toLowerCase();
+  return s === "title" || s === "titel";
 }
 
 /** Herkent een kopstijl aan de naam, in Word ("Heading2", "Title") en LibreOffice ("Heading 2"). */

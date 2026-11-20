@@ -10,7 +10,7 @@ const KAART =
     `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="200" viewBox="0 0 480 200"><rect width="480" height="200" fill="#e8efe6"/><path d="M0 140 C120 120 200 160 480 110" stroke="#9bb59a" stroke-width="18" fill="none"/><rect x="250" y="70" width="70" height="44" rx="4" fill="#3b6ea5"/><text x="285" y="97" font-family="sans-serif" font-size="13" fill="#fff" text-anchor="middle">P</text><text x="20" y="30" font-family="sans-serif" font-size="14" fill="#333">Stationsplein (verzonnen)</text></svg>`,
   );
 
-export const VOORBEELD = `<h1>Raadsvoorstel fietsenstalling Stationsplein</h1>
+export const VOORBEELD = `<h1 data-oa-stijl="titel">Raadsvoorstel fietsenstalling Stationsplein</h1>
 <p>Het college stelt de raad voor een krediet beschikbaar te stellen voor een overdekte fietsenstalling aan het Stationsplein.</p>
 <p><strong>Aanleiding</strong></p>
 <p>Rond het station staan dagelijks honderden fietsen buiten de rekken. Dat belemmert voetgangers en hulpdiensten.</p>
