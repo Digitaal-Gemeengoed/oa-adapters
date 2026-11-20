@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 0.20.7 — 2026-11-20
+
+- oa-paneel 0.19.0: het classificatiemodel en de status van het stuk.
+
 ## 0.20.6 — 2026-11-19
 
 - oa-paneel 0.18.0: een vastgelegde classificatie met het model van toen.
