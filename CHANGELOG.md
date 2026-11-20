@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 0.20.8 — 2026-11-20
+
+- oa-paneel 0.20.0 (huisstijl van de inrichting).
+
 ## 0.20.7 — 2026-11-20
 
 - oa-paneel 0.19.0: het classificatiemodel en de status van het stuk.
