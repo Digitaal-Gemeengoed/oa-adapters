@@ -10,7 +10,7 @@
     <name lang="en">Office Assistent</name>
   </display-name>
   <publisher>
-    <name xlink:href="https://github.com/digitaalgemeengoed/oa-adapters" lang="nl">Digitaal GemeenGoed</name>
+    <name xlink:href="https://github.com/Digitaal-Gemeengoed/oa-adapters" lang="nl">Digitaal GemeenGoed</name>
   </publisher>
   <extension-description>
     <src xlink:href="beschrijving.txt" lang="nl"/>
