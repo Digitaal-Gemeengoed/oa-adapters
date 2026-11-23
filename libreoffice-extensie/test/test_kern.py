@@ -60,6 +60,12 @@ class Kruistest(unittest.TestCase):
         self.assertEqual(k.ontbrekend(t, md), self.ts["ontbrekendRgbz"])
         self.assertEqual([k.suggesties(i, md, t) for i in self.f["inhouden"]], self.ts["suggestiesRgbz"])
         self.assertEqual(k.opgeschoond(md, t), self.ts["opgeschoondRgbz"])
+        # Archiefregeling 2026: velden die alleen bij "beperkt openbaar" gelden.
+        a = self.ts["objecttypeArchief"]
+        self.assertEqual(zonder_none(k.velden(a)), self.ts["veldenArchief"])
+        md = {"openbaarheid": "beperkt openbaar", "beperkingsgrond": "x", "naam": "Stuk"}
+        self.assertEqual([k.ontbrekend(a, md), k.ontbrekend(a, {"openbaarheid": "openbaar"})], self.ts["ontbrekendArchief"])
+        self.assertEqual(k.opgeschoond({**md, "openbaarheid": "openbaar"}, a), self.ts["opgeschoondArchief"])
         self.assertEqual(self.ts["meerSuggesties"][0]["naam"], "Fietsenstalling Stationsplein")
 
     def test_omschrijving(self):

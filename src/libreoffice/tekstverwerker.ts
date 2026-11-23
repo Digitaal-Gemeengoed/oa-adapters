@@ -11,6 +11,9 @@ import { groepeer, type Blok, type Doel, type Opdracht, type RuweAlinea, type Ta
 export class LibreOfficeTekstverwerker implements Tekstverwerker {
   readonly id = "libreoffice-writer";
   readonly naam = "LibreOffice Writer";
+  /** Uit /status van de brug, zodra die antwoordt. */
+  versie?: string;
+  platform?: string;
 
   constructor(
     private readonly poort: number,
@@ -35,8 +38,18 @@ export class LibreOfficeTekstverwerker implements Tekstverwerker {
     return j as T;
   }
 
+  /** Programma, versie en besturingssysteem ophalen voor de archiefmetadata; mislukt het, dan blijven ze leeg. */
+  laadOmgeving(): void {
+    this.status()
+      .then((s) => {
+        if (s.office) this.versie = s.office;
+        if (s.os) this.platform = s.os;
+      })
+      .catch(() => undefined);
+  }
+
   status() {
-    return this.vraag<{ naam: string; versie: string; soort?: "tekst" | "rekenblad" | "presentatie" }>("GET", "/status");
+    return this.vraag<{ naam: string; versie: string; soort?: "tekst" | "rekenblad" | "presentatie"; office?: string | null; os?: string | null }>("GET", "/status");
   }
 
   /** Rekenblad of presentatie als secties (zie oa_bladen.py). */

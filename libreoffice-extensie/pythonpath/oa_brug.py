@@ -42,6 +42,28 @@ def _versie():
 
 
 VERSIE = _versie()
+
+
+def office_versie(ctx):
+    """"LibreOffice 24.2.7.2": naam en versie van het programma (Archiefregeling 2026, art. 2.8)."""
+    try:
+        from com.sun.star.beans import PropertyValue
+        p = PropertyValue()
+        p.Name, p.Value = "nodepath", "/org.openoffice.Setup/Product"
+        cp = ctx.ServiceManager.createInstanceWithContext("com.sun.star.configuration.ConfigurationProvider", ctx)
+        n = cp.createInstanceWithArguments("com.sun.star.configuration.ConfigurationAccess", (p,))
+        return ("%s %s" % (n.getByName("ooName"), n.getByName("ooSetupVersionAboutBox"))).strip()
+    except Exception:
+        return None
+
+
+def besturingssysteem():
+    """Het besturingssysteem, zoals "Windows-11-10.0.26100-SP0" of "Linux-6.8.0-x86_64"."""
+    import platform
+    try:
+        return platform.platform(terse=False)[:120]
+    except Exception:
+        return None
 from oa_kern import NietUitvoerbaar
 
 
@@ -196,7 +218,8 @@ class Brug:
             raise _Weg()
         h = self.hoofd.voer_uit
         if methode == "GET" and pad == "/status":
-            return {"naam": h(lambda: od.naam_van(doc)), "versie": VERSIE, "soort": h(lambda: ob.soort_van(doc))}
+            return {"naam": h(lambda: od.naam_van(doc)), "versie": VERSIE, "soort": h(lambda: ob.soort_van(doc)),
+                    "office": h(lambda: office_versie(self.ctx)), "os": besturingssysteem()}
         # Rekenbladen en presentaties: html en herstellen op een plek (oa_bladen).
         if methode == "GET" and pad == "/html":
             return {"html": h(lambda: ob.html(doc))}

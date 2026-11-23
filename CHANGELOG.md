@@ -1,5 +1,11 @@
 # Wijzigingen
 
+## 0.22.0 — 2026-11-23
+
+- Werkomgeving met versie en platform (Archiefregeling 2026, art. 2.8): Word, Excel en PowerPoint uit `Office.context.diagnostics`; LibreOffice uit de brug (`/status`: productversie en besturingssysteem).
+- LibreOffice-extensie 0.18.0: `/status` geeft `office` en `os`; de Python-kern kent de voorwaardelijke velden (openbaarheid) en het eigen paneel toont alleen wat geldt.
+- oa-paneel 0.23.0, oa-contract 0.15.0.
+
 ## 0.21.1 — 2026-11-23
 
 - oa-paneel 0.22.0, oa-contract 0.14.0. De LibreOffice-extensie blijft 0.17.0.

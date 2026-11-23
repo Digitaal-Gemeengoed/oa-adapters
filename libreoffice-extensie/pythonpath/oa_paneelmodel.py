@@ -100,7 +100,8 @@ class Model:
 
     @property
     def velden(self):
-        return kern.velden(self.type) if self.type else []
+        # Alleen wat getoond wordt: de grond van een beperking pas bij "beperkt openbaar".
+        return [v for v in kern.velden(self.type) if kern.zichtbaar(v, self.metadata)] if self.type else []
 
     @property
     def ontbreekt(self):

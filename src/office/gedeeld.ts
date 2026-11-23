@@ -121,3 +121,13 @@ export function gedeeldeEigenschappen(
   }
   return { standaard, eigen: eigenWaarden };
 }
+
+/** Versie en platform van Office (Office.context.diagnostics), voor de archiefmetadata (Archiefregeling 2026, art. 2.8). */
+export function officeOmgeving(): { versie?: string; platform?: string } {
+  try {
+    const d = Office.context.diagnostics;
+    return { ...(d?.version ? { versie: `${d.host ?? "Office"} ${d.version}` } : {}), ...(d?.platform ? { platform: String(d.platform) } : {}) };
+  } catch {
+    return {};
+  }
+}

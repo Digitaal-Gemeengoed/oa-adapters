@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { parseHTML } from "linkedom";
 import { groepeer, naarHtml, plekNaarDoel, segmentNaarOpdracht, NietUitvoerbaar } from "../../src/semantisch.ts";
 import { metadateren, toegankelijkheid } from "@digitaalgemeengoed/oa-kern";
+import { schemaUitConfig, standaardConfig } from "@digitaalgemeengoed/oa-contract";
 
 const f = JSON.parse(readFileSync(new URL("./kruis.json", import.meta.url), "utf8"));
 const fragment = (html: string) => parseHTML(`<!doctype html><html><body><template>${html}</template></body></html>`).document.querySelector("template")!.content as unknown as { firstElementChild: Element | null };
@@ -35,5 +36,16 @@ const uit = {
   ontbrekendRgbz: metadateren.bevindingen(f.objecttypeRgbz, f.metadataRgbz),
   suggestiesRgbz: f.inhouden.map((i: never) => metadateren.suggesties(i, f.metadataRgbz, f.objecttypeRgbz)),
   opgeschoondRgbz: metadateren.opgeschoond(f.metadataRgbz, f.objecttypeRgbz),
+  // Archiefregeling 2026: openbaarheid met voorwaardelijke velden, uit het actuele contract.
+  ...(() => {
+    const t = { naam: "document", versie: 3, titel: "Document", schema: schemaUitConfig(standaardConfig("mdto")) };
+    const md = { openbaarheid: "beperkt openbaar", beperkingsgrond: "x", naam: "Stuk" };
+    return {
+      objecttypeArchief: t,
+      veldenArchief: metadateren.velden(t),
+      ontbrekendArchief: [metadateren.bevindingen(t, md), metadateren.bevindingen(t, { openbaarheid: "openbaar" })],
+      opgeschoondArchief: metadateren.opgeschoond({ ...md, openbaarheid: "openbaar" }, t),
+    };
+  })(),
 };
 process.stdout.write(JSON.stringify(uit));

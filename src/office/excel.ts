@@ -2,7 +2,7 @@
 import { BASISVERMOGENS, type Adapter, type Afdruk, type Inhoud, type Melding, type Plek, type Vermogen, type Werkomgeving } from "@digitaalgemeengoed/oa-contract";
 import { plaatshoudersIn, schoonSelectie, vervangInTekst, vondstenVoorMarkeren, type Paar } from "../tekstvervangen.js";
 import type { PiiMarkering, PiiPlek } from "@digitaalgemeengoed/oa-contract";
-import { ALS_EIGEN, eersteElement, esc, gedeeldeEigenschappen, HANDMATIG, img, leesAfdrukUitBestand, leesOfficeBestand, NIET_GEVONDEN, OFFICE_VELD, padDelen, schrijfAfdrukInBestand } from "./gedeeld.js";
+import { ALS_EIGEN, eersteElement, officeOmgeving, esc, gedeeldeEigenschappen, HANDMATIG, img, leesAfdrukUitBestand, leesOfficeBestand, NIET_GEVONDEN, OFFICE_VELD, padDelen, schrijfAfdrukInBestand } from "./gedeeld.js";
 
 const MAX_RIJEN = 200;
 const MAX_KOLOMMEN = 30;
@@ -31,7 +31,7 @@ export class ExcelAdapter implements Adapter {
   werkomgeving(): Werkomgeving {
     const vermogens: Vermogen[] = [...BASISVERMOGENS, "segment-vervangen", "plek-tonen", "afdruk-schrijven", "bestand-opleveren", "tekst-vervangen", "selectie-lezen", "pii-markeren", "pii-klik"];
     if (this.eigenschappen) vermogens.push("eigenschap-schrijven", "eigenschappen-lezen", "standaardeigenschap-schrijven");
-    return { id: "excel", naam: "Microsoft Excel", vermogens };
+    return { id: "excel", naam: "Microsoft Excel", vermogens, ...officeOmgeving() };
   }
 
   async leverInhoud(): Promise<Inhoud> {

@@ -25,6 +25,9 @@ import { ordenParen, schoonSelectie } from "./tekstvervangen.js";
 export interface Tekstverwerker {
   readonly id: string;
   readonly naam: string;
+  /** Programma en versie, en het besturingssysteem (Archiefregeling 2026, art. 2.8). */
+  readonly versie?: string;
+  readonly platform?: string;
   leesBlokken(): Promise<Blok[]>;
   voerUit(opdracht: Opdracht): Promise<void>;
   toon(doel: Doel): Promise<void>;
@@ -126,7 +129,7 @@ export class StructuurAdapter implements Adapter {
     if (this.schrijfDocumenteigenschap) vermogens.push("eigenschap-schrijven");
     if (this.leesEigenschappen) vermogens.push("eigenschappen-lezen");
     if (this.schrijfStandaardeigenschap) vermogens.push("standaardeigenschap-schrijven");
-    return { id: this.tv.id, naam: this.tv.naam, vermogens };
+    return { id: this.tv.id, naam: this.tv.naam, vermogens, ...(this.tv.versie ? { versie: this.tv.versie } : {}), ...(this.tv.platform ? { platform: this.tv.platform } : {}) };
   }
 
   async leverInhoud(): Promise<Inhoud> {

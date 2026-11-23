@@ -1,7 +1,7 @@
 /// <reference types="office-js" />
 import type { Documenteigenschappen, Inhoud, PiiMarkering, PiiPlek, Ppl, Standaardeigenschap } from "@digitaalgemeengoed/oa-contract";
 import { PII_KLEUR } from "../tekstvervangen.js";
-import { ALS_EIGEN, gedeeldeEigenschappen, OFFICE_VELD } from "../office/gedeeld.js";
+import { ALS_EIGEN, gedeeldeEigenschappen, OFFICE_VELD, officeOmgeving } from "../office/gedeeld.js";
 import type { Tekstverwerker } from "../structuur-adapter.js";
 import { groepeer, isTitelStijl, niveauUitStijl, type Blok, type Doel, type Inline, type Opdracht, type RuweAlinea, type Tabel } from "../semantisch.js";
 
@@ -14,6 +14,8 @@ import { groepeer, isTitelStijl, niveauUitStijl, type Blok, type Doel, type Inli
 export class WordTekstverwerker implements Tekstverwerker {
   readonly id = "word";
   readonly naam = "Microsoft Word";
+  readonly versie = officeOmgeving().versie;
+  readonly platform = officeOmgeving().platform;
 
   async leesBlokken(): Promise<Blok[]> {
     return Word.run(async (ctx) => {

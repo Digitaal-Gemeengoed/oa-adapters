@@ -64,6 +64,7 @@ async function start() {
   if (!(await zorgVoorInlog())) return;
   if (brug.soort === "aanmelden") return aanmelden(brug);
   const tv = new LibreOfficeTekstverwerker(brug.poort, brug.sleutel);
+  tv.laadOmgeving();
   let soort: "tekst" | "rekenblad" | "presentatie" = "tekst";
   let extensieVersie = "0";
   try {

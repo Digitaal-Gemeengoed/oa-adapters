@@ -46,11 +46,16 @@ ROL_IN_MODEL = {
         ("omschrijving", "omschrijving"): "omschrijving",
         ("informatiecategorie", "informatiecategorie"): "informatiecategorie",
         ("beperkingGebruik", "beperkingGebruik"): "vertrouwelijkheid",
+        ("openbaarheid", "beperkingGebruik (openbaarheid)"): "openbaarheid",
+        ("beperkingsgrond", "beperkingGebruik.beperkingGebruikNadereBeschrijving"): "beperkingsgrond",
+        ("beperkingstermijn", "beperkingGebruik.beperkingGebruikTermijn.termijnLooptijd"): "beperkingstermijn",
+        ("beperkingEinddatum", "beperkingGebruik.beperkingGebruikTermijn.termijnEinddatum"): "beperkingEinddatum",
         ("taal", "taal"): "taal",
         ("trefwoord", "trefwoord"): "trefwoorden",
         ("isOnderdeelVan", "isOnderdeelVan"): "dossier",
         ("zaak", "—"): "zaak",
         ("betrokkene", "betrokkene"): "auteur",
+        ("activiteit", "activiteit"): "taak",
         ("gebeurtenisDatum", "event (datum)"): "datum",
     },
     "rgbz": {
@@ -64,13 +69,23 @@ ROL_IN_MODEL = {
         ("zaak", "zaakinformatieobject.zaak"): "zaak",
         ("trefwoorden", "trefwoorden"): "trefwoorden",
         ("informatiecategorie", "—"): "informatiecategorie",
+        ("taak", "—"): "taak",
+        ("openbaarheid", "—"): "openbaarheid",
+        ("beperkingsgrond", "—"): "beperkingsgrond",
+        ("beperkingstermijn", "—"): "beperkingstermijn",
+        ("beperkingEinddatum", "—"): "beperkingEinddatum",
     },
     "tmlo": {
         ("naam", "naam"): "titel",
         ("omschrijving", "omschrijving"): "omschrijving",
         ("vertrouwelijkheid", "vertrouwelijkheid.classificatieNiveau"): "vertrouwelijkheid",
+        ("openbaarheid", "openbaarheid"): "openbaarheid",
+        ("beperkingsgrond", "openbaarheid.omschrijvingBeperkingen"): "beperkingsgrond",
+        ("beperkingstermijn", "—"): "beperkingstermijn",
+        ("beperkingEinddatum", "openbaarheid.datumOfPeriode"): "beperkingEinddatum",
         ("taal", "taal"): "taal",
         ("eventDatum", "eventGeschiedenis.datumOfPeriode"): "datum",
+        ("activiteit", "context.activiteit"): "taak",
         ("actor", "context.actor"): "auteur",
         ("relatie", "relatie"): "dossier",
         ("zaak", "—"): "zaak",
@@ -106,7 +121,8 @@ def velden(objecttype):
     """De invoervelden van een objecttype. Met een model uit het beheerportaal in de volgorde
     die de gemeente koos; anders verplichte eerst, in de volgorde van het schema."""
     schema = objecttype.get("schema") or {}
-    verplicht = set(schema.get("required") or [])
+    # Ook wat alleen verplicht is als het getoond wordt (x-oa-verplicht-als).
+    verplicht = set(schema.get("required") or []) | {k for r in (schema.get("x-oa-verplicht-als") or []) for k in r.get("velden") or []}
     model = schema.get("x-oa-model") or "mdto"
     rollen = {sleutel: rol for rol, sleutel in rollen_van(schema).items()}
     lijst = []
@@ -133,6 +149,7 @@ def velden(objecttype):
             "opties": e.get("enum"),
             "maxLengte": e.get("maxLength"),
             "standaard": e.get("default"),
+            "toonAls": e.get("x-oa-toon-als"),
         })
     if schema.get("x-oa-model"):
         # De volgorde van de keuze van de gemeente (de database bewaart de sleutels anders).
@@ -168,8 +185,28 @@ def suggesties(inhoud, huidig, objecttype=None):
     return s
 
 
+def zichtbaar(veld, metadata):
+    """Wordt dit veld getoond (zoals de grond bij "beperkt openbaar")?"""
+    t = veld.get("toonAls")
+    return not t or metadata.get(t["veld"]) == t["waarde"]
+
+
+def ontbrekende_velden(schema, metadata):
+    """oa-contract: ontbrekendeVelden — vaste en voorwaardelijke verplichte velden die leeg zijn."""
+    schema = schema or {}
+    m = metadata or {}
+    leeg = lambda k: m.get(k) in (None, "")
+    uit = [k for k in (schema.get("required") or []) if leeg(k)]
+    for r in schema.get("x-oa-verplicht-als") or []:
+        if m.get(r["veld"]) != r["waarde"]:
+            continue
+        uit += [k for k in r["velden"] if leeg(k) and k not in uit]
+    return uit
+
+
 def ontbrekend(objecttype, metadata):
     """Ontbrekende verplichte velden, als bevindingen."""
+    leeg = set(ontbrekende_velden(objecttype.get("schema"), metadata))
     return [
         {
             "id": "md-" + v["naam"],
@@ -179,17 +216,19 @@ def ontbrekend(objecttype, metadata):
             "melding": "%s is nog niet ingevuld." % v["label"],
         }
         for v in velden(objecttype)
-        if v["verplicht"] and metadata.get(v["naam"]) in (None, "")
+        if v["naam"] in leeg
     ]
 
 
 def opgeschoond(metadata, objecttype=None):
     """Alleen ingevulde waarden; lege velden gaan niet als lege tekst naar het platform.
     Een getalveld gaat als getal."""
-    getal = {v["naam"] for v in velden(objecttype) if v["soort"] == "getal"} if objecttype else set()
+    vv = velden(objecttype) if objecttype else []
+    getal = {v["naam"] for v in vv if v["soort"] == "getal"}
+    verborgen = {v["naam"] for v in vv if not zichtbaar(v, metadata)}
     uit = {}
     for k, w in metadata.items():
-        if w in (None, ""):
+        if w in (None, "") or k in verborgen:
             continue
         if k in getal and isinstance(w, str):
             try:

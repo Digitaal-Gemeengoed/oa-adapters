@@ -2,7 +2,7 @@
 import { BASISVERMOGENS, type Adapter, type Afdruk, type Inhoud, type Melding, type Plek, type Vermogen, type Werkomgeving } from "@digitaalgemeengoed/oa-contract";
 import { heelWoord, ordenParen, PII_KLEUR, plaatshoudersIn, schoonSelectie, vondstenVoorMarkeren, type Paar } from "../tekstvervangen.js";
 import type { PiiMarkering, PiiPlek } from "@digitaalgemeengoed/oa-contract";
-import { ALS_EIGEN, eersteElement, esc, gedeeldeEigenschappen, HANDMATIG, img, leesAfdrukUitBestand, leesOfficeBestand, NIET_GEVONDEN, OFFICE_VELD, padDelen, schrijfAfdrukInBestand } from "./gedeeld.js";
+import { ALS_EIGEN, eersteElement, officeOmgeving, esc, gedeeldeEigenschappen, HANDMATIG, img, leesAfdrukUitBestand, leesOfficeBestand, NIET_GEVONDEN, OFFICE_VELD, padDelen, schrijfAfdrukInBestand } from "./gedeeld.js";
 
 /** Plaatshouders die een titel zijn. */
 const TITELS = new Set(["Title", "CenterTitle", "VerticalTitle"]);
@@ -72,7 +72,7 @@ export class PowerPointAdapter implements Adapter {
     if (this.deeltekst) vermogens.push("tekst-vervangen", "pii-markeren");
     if (this.deeltekst && this.selecteren) vermogens.push("pii-klik");
     if (this.eigenschappen) vermogens.push("eigenschap-schrijven", "eigenschappen-lezen", "standaardeigenschap-schrijven");
-    return { id: "powerpoint", naam: "Microsoft PowerPoint", vermogens };
+    return { id: "powerpoint", naam: "Microsoft PowerPoint", vermogens, ...officeOmgeving() };
   }
 
   get leesEigenschappen(): Adapter["leesEigenschappen"] {
