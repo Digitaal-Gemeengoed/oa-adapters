@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 0.21.1 — 2026-11-23
+
+- oa-paneel 0.22.0, oa-contract 0.14.0. De LibreOffice-extensie blijft 0.17.0.
+
 ## 0.21.0 — 2026-11-20
 
 **Documenteigenschappen en het opmaakprofiel Titel.** Ontwerp: `oa-uitrol/docs/ontwerp/documenteigenschappen.md`.
