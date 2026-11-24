@@ -1,0 +1,8 @@
+{
+  "manifestVersion": "0.1",
+  "name": "Office Assistent",
+  "version": "0.1.0",
+  "entry": "index.html",
+  "icon": "icon.svg",
+  "supports": ["text"]
+}

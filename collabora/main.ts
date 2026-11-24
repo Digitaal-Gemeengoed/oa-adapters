@@ -17,6 +17,11 @@ const meld = statusbalk(document.getElementById("status")!);
 const paneelplek = document.getElementById("paneel")!;
 
 const kop = { "x-oa-verzoek": "1" };
+/**
+ * Proef (/collabora-proef): geen paneel ernaast en geen knoppen in de werkbalk;
+ * de assistent zit dan als extensie in Collabora zelf (collabora-extensie/).
+ */
+const PROEF = location.pathname.startsWith("/collabora-proef");
 let collaboraHerkomst = "";
 let huidig: string | null = null;
 let weghalen: (() => void) | null = null;
@@ -45,7 +50,7 @@ window.addEventListener("message", (e) => {
   if (b.MessageId === "App_LoadingStatus") {
     if (b.Values?.Status === "Frame_Ready") stuur({ MessageId: "Host_PostmessageReady" });
     if (b.Values?.Status === "Document_Loaded") {
-      voegKnoppenToe();
+      if (!PROEF) voegKnoppenToe();
       geladen?.();
       geladen = null;
     }
@@ -130,6 +135,10 @@ async function open(id: string) {
   keuze.value = id;
   weghalen?.();
   await openInEditor(id);
+  if (PROEF) {
+    meld({ soort: "info", tekst: "Proef: de assistent staat in Collabora zelf, onder Extensies → Office Assistent." });
+    return;
+  }
   weghalen = plaatsPaneel(paneelplek, new CollaboraAdapter(id, venster, meld, formaten.get(id) ?? "docx"));
 }
 
@@ -144,6 +153,7 @@ async function vulLijst(kies?: string) {
 }
 
 async function start() {
+  if (PROEF) werkvlak.classList.add("zonder-paneel");
   if (!(await zorgVoorInlog())) return;
   iframe.hidden = true;
   try {

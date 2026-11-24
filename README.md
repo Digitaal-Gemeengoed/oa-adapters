@@ -70,7 +70,7 @@ npm test          # typecontrole en de tests van semantisch.ts en StructuurAdapt
 npm run dev       # ontwikkelserver; /api gaat naar de integratielaag op poort 3000
 ```
 
-De extensie is getest tegen een echte LibreOffice (headless): start `soffice --headless --accept="socket,host=127.0.0.1,port=2002;urp;"` en draai `python3 -m pytest libreoffice-extensie/test` (de kruistest heeft ook node nodig).
+De extensie is getest tegen een echte LibreOffice (headless): start `soffice --headless --accept="socket,host=127.0.0.1,port=2002;urp;"` en draai `python3 -m pytest libreoffice-extensie/test` (de kruistest heeft ook node nodig). De proef met Collabora als extensie: zie `collabora-extensie/README.md`.
 
 `test/office.test.ts` toetst de Excel- en PowerPoint-adapter tegen een nagebootst Office.js en de echte regels van oa-services.
 

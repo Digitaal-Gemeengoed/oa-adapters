@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Collabora Online (proef: assistent als extensie) — Office Assistent</title>
+  </head>
+  <body>
+    <div class="co">
+      <header class="co-kop">
+        <span class="co-app">Collabora Online <small>(proef: assistent als extensie)</small></span>
+        <select id="bestanden" aria-label="Werkbestand"></select>
+        <span class="co-nieuw" role="group" aria-label="Nieuw voorbeeld">
+          Nieuw voorbeeld:
+          <button type="button" data-soort="tekst">Tekst</button>
+          <button type="button" data-soort="rekenblad">Rekenblad</button>
+          <button type="button" data-soort="presentatie">Presentatie</button>
+        </span>
+        <a href="/">Startpagina</a>
+      </header>
+      <p id="status" class="co-status" role="status"></p>
+      <main class="co-werkvlak">
+        <div class="co-editor">
+          <iframe id="editor" name="collabora" title="Collabora Online" allow="clipboard-read *; clipboard-write *; fullscreen"></iframe>
+          <p id="leeg" class="co-leeg">Kies een werkbestand, of maak een nieuw voorbeeld: tekst, rekenblad of presentatie.</p>
+        </div>
+        <aside id="paneel" class="co-paneel" aria-label="Assistent"></aside>
+      </main>
+    </div>
+    <script type="module" src="../collabora/main.ts"></script>
+  </body>
+</html>

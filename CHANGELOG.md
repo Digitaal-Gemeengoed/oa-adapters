@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## 0.23.0 — 2026-11-24
+
+- **Proef: de assistent als extensie in Collabora Online** (`collabora-extensie/`), naast de bestaande pagina met het paneel ernaast. Ontwerp: `oa-uitrol/docs/ontwerp/collabora-extensie.md`.
+  - Het pakket voor Collabora (`collabora-extensie/pakket`): manifest 0.1, `brug.js` (vaste opdrachten via `cool.callRemote`, alleen van het eigen paneel; gebeurtenissen selectie en gewijzigd) en `kit.js` (`oaKit`: de documentlogica van `oa_document.py` en het Writer-deel van `oa_tekst.py`, voor QuickJS met JS-UNO).
+  - Nieuwe pagina's `/collabora-proef` (werkbestand openen, zonder paneel ernaast) en `/collabora-extensie/` (het paneel in de extensie, met `CollaboraKitTekstverwerker` onder de gewone `StructuurAdapter`).
+  - Writer: lezen, beoordelen, herstellen op een plek, tonen, selectie, tekst vervangen en documenteigenschappen. Nog niet: anonimiseren in het document, rekenbladen en presentaties.
+  - Getest: `kit.js` in QuickJS tegen een echte LibreOffice (gelijk aan de Python-extensie), en de keten paneel → brug → kit in een browser met een nagebootste `cool.js`. Collabora zelf nog niet: zie het proefplan.
+
 ## 0.22.1 — 2026-11-24
 
 - LibreOffice-extensie 0.18.1: bij een nieuw, leeg document toonde het zijpaneel de uitleg over installeren in plaats van de assistent. Oorzaak: het paneel vroeg sinds 0.18.0 twee keer tegelijk `/status`, en de brug raakte het document ook buiten de hoofdthread aan; PyUNO vond daarbij de eigenschap `Title` van een nog onbekend object niet (`AttributeError: Title`).

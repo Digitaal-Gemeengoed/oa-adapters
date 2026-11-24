@@ -7,6 +7,8 @@ import { defineConfig } from "vite";
 //   /word/             takenvenster en aanmeldvenster van de Word-invoegtoepassing
 //   /collabora/        Collabora Online met het paneel ernaast
 //   /libreoffice/      het paneel naast LibreOffice op de eigen computer
+//   /collabora-proef/  proef: Collabora Online met de assistent als extensie erin
+//   /collabora-extensie/ proef: het paneel in die extensie (collabora-extensie/pakket)
 const pagina = (p: string) => resolve(__dirname, p);
 
 export default defineConfig({
@@ -24,6 +26,8 @@ export default defineConfig({
         aanmelden: pagina("word/aanmelden.html"),
         collabora: pagina("collabora/index.html"),
         libreoffice: pagina("libreoffice/index.html"),
+        collaboraProef: pagina("collabora-proef/index.html"),
+        collaboraExtensie: pagina("collabora-extensie/index.html"),
       },
     },
   },
