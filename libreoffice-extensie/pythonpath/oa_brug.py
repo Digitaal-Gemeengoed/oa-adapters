@@ -212,11 +212,16 @@ class Brug:
 
     def vraag(self, methode, pad, lichaam, volledig):
         doc = self.document
+        h = self.hoofd.voer_uit
+        # Bestaat het document nog? Ook dit op de hoofdthread: een UNO-aanroep
+        # vanuit deze thread naast werk op de hoofdthread laat PyUNO soms de
+        # eigenschappen van een nieuw object missen (AttributeError: Title).
         try:
-            doc.getDocumentProperties()  # bestaat het document nog?
+            h(lambda: doc.getDocumentProperties())
+        except TimeoutError:
+            raise
         except Exception:
             raise _Weg()
-        h = self.hoofd.voer_uit
         if methode == "GET" and pad == "/status":
             return {"naam": h(lambda: od.naam_van(doc)), "versie": VERSIE, "soort": h(lambda: ob.soort_van(doc)),
                     "office": h(lambda: office_versie(self.ctx)), "os": besturingssysteem()}

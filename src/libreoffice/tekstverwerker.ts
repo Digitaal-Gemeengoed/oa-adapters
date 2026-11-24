@@ -38,18 +38,15 @@ export class LibreOfficeTekstverwerker implements Tekstverwerker {
     return j as T;
   }
 
-  /** Programma, versie en besturingssysteem ophalen voor de archiefmetadata; mislukt het, dan blijven ze leeg. */
-  laadOmgeving(): void {
-    this.status()
-      .then((s) => {
-        if (s.office) this.versie = s.office;
-        if (s.os) this.platform = s.os;
-      })
-      .catch(() => undefined);
-  }
-
-  status() {
-    return this.vraag<{ naam: string; versie: string; soort?: "tekst" | "rekenblad" | "presentatie"; office?: string | null; os?: string | null }>("GET", "/status");
+  /**
+   * Naam en soort van het document, de versie van de extensie, en programma en
+   * besturingssysteem voor de archiefmetadata (die onthouden we hier).
+   */
+  async status() {
+    const s = await this.vraag<{ naam: string; versie: string; soort?: "tekst" | "rekenblad" | "presentatie"; office?: string | null; os?: string | null }>("GET", "/status");
+    if (s.office) this.versie = s.office;
+    if (s.os) this.platform = s.os;
+    return s;
   }
 
   /** Rekenblad of presentatie als secties (zie oa_bladen.py). */

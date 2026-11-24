@@ -3,7 +3,7 @@ import "@digitaalgemeengoed/oa-paneel/style.css";
 import { StructuurAdapter } from "../src/structuur-adapter";
 import { LibreOfficeTekstverwerker } from "../src/libreoffice/tekstverwerker";
 import { LibreOfficeBladenAdapter } from "../src/libreoffice/bladen";
-import { koppelSessie, statusbalk, zorgVoorInlog } from "../src/host/statusbalk";
+import { koppelSessie, statusbalk, toonProbleem, zorgVoorInlog } from "../src/host/statusbalk";
 import "./libreoffice.css";
 
 /**
@@ -64,19 +64,24 @@ async function start() {
   if (!(await zorgVoorInlog())) return;
   if (brug.soort === "aanmelden") return aanmelden(brug);
   const tv = new LibreOfficeTekstverwerker(brug.poort, brug.sleutel);
-  tv.laadOmgeving();
   let soort: "tekst" | "rekenblad" | "presentatie" = "tekst";
   let extensieVersie = "0";
   try {
-    const s = await tv.status();
+    // Eén keer opnieuw: net na het openen van een document is LibreOffice soms nog bezig.
+    const s = await tv.status().catch(async () => {
+      await new Promise((r) => setTimeout(r, 1500));
+      return tv.status();
+    });
     soort = s.soort ?? "tekst";
     extensieVersie = s.versie;
     const app = soort === "rekenblad" ? "LibreOffice Calc" : soort === "presentatie" ? "LibreOffice Impress" : "LibreOffice Writer";
     document.getElementById("document")!.textContent = `${app} — ${s.naam}`;
     document.title = `${s.naam} — Office Assistent`;
   } catch (e) {
-    meld({ soort: "fout", tekst: (e as Error).message });
-    document.getElementById("uitleg")!.hidden = false;
+    // De extensie is er wel (anders was er geen brug), maar antwoordt niet goed:
+    // een blijvende melding, niet de uitleg over installeren.
+    document.querySelector("#paneel .oa-laden-vast")?.remove();
+    toonProbleem(document.getElementById("paneel")!, `De assistent kan dit document niet lezen: ${(e as Error).message}. Kies Opnieuw proberen; lukt het dan niet, sluit het zijpaneel en open het opnieuw.`);
     return;
   }
   // Anonimiseren in het document vraagt extensie 0.10.0 of nieuwer; met een oudere werkt het zoals vroeger (voorbeeld in het paneel).

@@ -362,8 +362,14 @@ def schrijf_eigenschap(document, naam, waarde):
 
 
 def naam_van(document):
-    titel = document.getDocumentProperties().Title
+    try:
+        titel = document.getDocumentProperties().Title
+    except Exception:
+        titel = ""
     if titel:
         return titel
-    url = document.getURL()
-    return uno.fileUrlToSystemPath(url).rsplit(os.sep, 1)[-1] if url else "Naamloos document"
+    try:
+        url = document.getURL()
+        return uno.fileUrlToSystemPath(url).rsplit(os.sep, 1)[-1] if url else "Naamloos document"
+    except Exception:
+        return "Naamloos document"

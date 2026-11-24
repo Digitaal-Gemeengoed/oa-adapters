@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## 0.22.1 — 2026-11-24
+
+- LibreOffice-extensie 0.18.1: bij een nieuw, leeg document toonde het zijpaneel de uitleg over installeren in plaats van de assistent. Oorzaak: het paneel vroeg sinds 0.18.0 twee keer tegelijk `/status`, en de brug raakte het document ook buiten de hoofdthread aan; PyUNO vond daarbij de eigenschap `Title` van een nog onbekend object niet (`AttributeError: Title`).
+  - De brug controleert het bestaan van het document nu op de hoofdthread; `naam_van` valt bij een fout terug op de bestandsnaam of "Naamloos document".
+  - Het paneel vraagt `/status` één keer (met één nieuwe poging) en haalt daar ook programma en besturingssysteem uit; `laadOmgeving()` is vervallen.
+  - Antwoordt de extensie toch niet, dan een blijvende melding met *Opnieuw proberen*, niet meer de uitleg over installeren (die verdween al na 8 seconden achter een verdwenen foutmelding).
+- Nagespeeld en getest met LibreOffice 24.2 (GTK, WebKitGTK 2.52) op een virtueel scherm: leeg document en geopend .docx.
+
 ## 0.22.0 — 2026-11-23
 
 - Werkomgeving met versie en platform (Archiefregeling 2026, art. 2.8): Word, Excel en PowerPoint uit `Office.context.diagnostics`; LibreOffice uit de brug (`/status`: productversie en besturingssysteem).
