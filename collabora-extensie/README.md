@@ -34,7 +34,9 @@ terugval op `getX`/`setX` en directe toegang.
 
 ## Aanzetten (VPS 1)
 
-In `/opt/oa-uitrol/.env`: `COLLABORA_EXPERIMENTEEL=true`, dan `bijwerken.sh`.
+Standaard aan sinds oa-uitrol 0.35.1 (`COLLABORA_EXPERIMENTEEL=true` in
+`/opt/oa-uitrol/.env`; `false` zet de experimentele functies van Collabora, en
+daarmee de proef, uit). Na `bijwerken.sh`:
 Open `https://oa.<domein>/collabora-proef`, kies een tekstbestand en kies in
 Collabora **Extensies → Office Assistent** (tabweergave: tabblad Extensies).
 Meldt het paneel zich niet, dan staat in de extensie een melding met de
