@@ -1,5 +1,16 @@
 # Wijzigingen
 
+## 0.24.0 — 2026-11-25
+
+- **LibreOffice-extensie 0.19.0**: de originelen tijdelijk in de tekst (Writer). Ontwerp: `oa-uitrol/docs/ontwerp/anonimiseren-in-het-document.md`.
+  - Nieuwe routes in de brug: `POST /pii/inzien`, `POST /pii/verbergen`, `GET /pii/inzage`.
+  - Alleen voor een opgeslagen, ongewijzigd document. Het document gaat op alleen-lezen (zoals *Document bewerken* uit), wordt niet als gewijzigd gemarkeerd (dus geen herstelkopie en geen vraag om op te slaan) en de opdrachten Opslaan, Opslaan als, Exporteren (ook als PDF), Afdrukken, Mailen, Ondertekenen, Opnieuw laden en *Document bewerken* zijn grijs en doen niets.
+  - Vangnet: wordt het document toch opgeslagen of gekopieerd (bijvoorbeeld door een macro), dan gaan eerst de plaatshouders terug en daarna weer de originelen.
+  - De wissel staat niet in Ongedaan maken. Opmerkingen in het document houden hun plaatshouders.
+  - Zolang de originelen in de tekst staan, weigert de brug het lezen en wijzigen van het document. Bij het sluiten van het paneel gaan de plaatshouders terug.
+- `LibreOfficeTekstverwerker` en `StructuurAdapter`: `toonPiiOriginelen`, `verbergPiiOriginelen`, `piiOriginelenZichtbaar`.
+- oa-contract 0.16.0, oa-paneel 0.24.0.
+
 ## 0.23.0 — 2026-11-24
 
 - **Proef: de assistent als extensie in Collabora Online** (`collabora-extensie/`), naast de bestaande pagina met het paneel ernaast. Ontwerp: `oa-uitrol/docs/ontwerp/collabora-extensie.md`.

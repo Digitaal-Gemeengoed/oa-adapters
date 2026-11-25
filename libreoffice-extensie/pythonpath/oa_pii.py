@@ -27,6 +27,8 @@ import re
 
 import uno
 import unohelper
+from com.sun.star.document import XDocumentEventListener
+from com.sun.star.frame import FeatureStateEvent, XDispatch, XDispatchProviderInterceptor
 from com.sun.star.ui import XContextMenuInterceptor
 from com.sun.star.ui.ContextMenuInterceptorAction import EXECUTE_MODIFIED, IGNORED
 from com.sun.star.view import XSelectionChangeListener
@@ -535,3 +537,234 @@ def plek_bij_selectie(document):
                 if m:
                     return {"plek": "%s#0" % kenmerk, "plaatshouder": m.group(0), "voorvertoning": False}
     return None
+
+
+# ---------------------------------------------------------------------------
+# Inzage: de originele waarden tijdelijk in de tekst (Writer)
+# ---------------------------------------------------------------------------
+#
+# Wie het niveau heeft, kan de originelen in de tekst zien in plaats van de
+# plaatshouders. Het document mag dan niet met originelen worden bewaard:
+#  - alleen een opgeslagen, ongewijzigd document;
+#  - eerst alleen-lezen (.uno:EditDoc): typen kan niet meer, de API wel;
+#  - de tekst binnen elke bladwijzer om (de bladwijzer blijft), onderstippeld;
+#  - het document kan niet "gewijzigd" worden (disableSetModified): geen vraag
+#    om op te slaan bij sluiten, en het automatisch herstel slaat niets op;
+#  - opslaan, exporteren, afdrukken, mailen en terug naar bewerken
+#    onderschept (en grijs in menu's en werkbalken);
+#  - het omwisselen komt niet in Ongedaan maken;
+#  - vangnet: bij een opslaggebeurtenis toch eerst de plaatshouders terug.
+# Opmerkingen (annotaties) blijven plaatshouders: daar is geen bladwijzer.
+
+GEBLOKKEERD = (".uno:Save", ".uno:Export", ".uno:Print", ".uno:SendMail", ".uno:EditDoc", ".uno:SendViaBluetooth",
+               ".uno:SaveACopy", ".uno:SaveAll", ".uno:Signature", ".uno:CheckIn", ".uno:Reload")
+ONDERSTIPPELD = 3  # FontUnderline.DOTTED
+
+
+def _geblokkeerd(url):
+    cmd = url.Complete.split("?", 1)[0]
+    return cmd.startswith(GEBLOKKEERD)
+
+
+class _Weiger(unohelper.Base, XDispatch):
+    """Doet niets en meldt zich als uitgeschakeld (grijs in menu en werkbalk)."""
+
+    def dispatch(self, url, args):
+        pass
+
+    def addStatusListener(self, luisteraar, url):
+        e = FeatureStateEvent()
+        e.FeatureURL = url
+        e.IsEnabled = False
+        e.Source = self
+        try:
+            luisteraar.statusChanged(e)
+        except Exception:
+            pass
+
+    def removeStatusListener(self, luisteraar, url):
+        pass
+
+
+class _Onderschep(unohelper.Base, XDispatchProviderInterceptor):
+    def __init__(self):
+        self.slaaf = None
+        self.meester = None
+        self.weiger = _Weiger()
+
+    def queryDispatch(self, url, doel, vlaggen):
+        if _geblokkeerd(url):
+            return self.weiger
+        return self.slaaf.queryDispatch(url, doel, vlaggen) if self.slaaf else None
+
+    def queryDispatches(self, vragen):
+        return tuple(self.queryDispatch(v.FeatureURL, v.FrameName, v.SearchFlags) for v in vragen)
+
+    def getSlaveDispatchProvider(self):
+        return self.slaaf
+
+    def setSlaveDispatchProvider(self, x):
+        self.slaaf = x
+
+    def getMasterDispatchProvider(self):
+        return self.meester
+
+    def setMasterDispatchProvider(self, x):
+        self.meester = x
+
+
+class Inzage(unohelper.Base, XDocumentEventListener):
+    def __init__(self, ctx, document):
+        self.ctx = ctx
+        self.document = document
+        self.getoond = {}  # plek -> plaatshouder
+        self.waarden = {}  # plek -> origineel (alleen in het geheugen, zolang getoond)
+        self.opgeschort = False
+        self.onderschep = None
+        self.frame = None
+        self.alleen_lezen_gezet = False
+
+    @property
+    def actief(self):
+        return bool(self.getoond)
+
+    def _dispatch(self, cmd):
+        helper = self.ctx.ServiceManager.createInstanceWithContext("com.sun.star.frame.DispatchHelper", self.ctx)
+        helper.executeDispatch(self.frame, cmd, "", 0, ())
+
+    def _zonder_ongedaan(self, werk):
+        um = None
+        try:
+            um = self.document.getUndoManager()
+            um.lock()
+        except Exception:
+            um = None
+        try:
+            werk()
+        finally:
+            if um is not None:
+                try:
+                    um.unlock()
+                except Exception:
+                    pass
+
+    def toon(self, waarden):
+        """waarden: [{plaatshouder, waarde}]. Geeft het aantal plekken in de tekst."""
+        from oa_kern import NietUitvoerbaar
+        if self.actief:
+            self.verberg()
+        doc = self.document
+        if not doc.hasLocation():
+            raise NietUitvoerbaar("Sla het document eerst op; daarna kun je de originelen in de tekst tonen.")
+        if doc.isModified():
+            raise NietUitvoerbaar("Het document heeft wijzigingen die nog niet zijn opgeslagen. Sla eerst op; daarna kun je de originelen in de tekst tonen.")
+        per = {w["plaatshouder"]: w["waarde"] for w in waarden if w.get("plaatshouder") and w.get("waarde") is not None}
+        plekken = [(m, bw) for m, bw in _bladwijzers(doc) if m.group(2) in per]
+        if not plekken:
+            return 0
+        self.frame = doc.getCurrentController().getFrame()
+        if not doc.isReadonly():
+            self._dispatch(".uno:EditDoc")
+            self.alleen_lezen_gezet = True
+        if not doc.isReadonly():
+            raise NietUitvoerbaar("Het document kon niet op alleen-lezen. De originelen blijven verborgen.")
+        self.onderschep = _Onderschep()
+        self.frame.registerDispatchProviderInterceptor(self.onderschep)
+        doc.disableSetModified()
+
+        for m, _bw in plekken:
+            self.getoond[m.group(1)] = m.group(2)
+            self.waarden[m.group(1)] = per[m.group(2)]
+        self._zonder_ongedaan(self._wissel)
+        try:
+            doc.addDocumentEventListener(self)
+        except Exception:
+            pass
+        try:
+            self.frame.contextChanged()
+        except Exception:
+            pass
+        return len(self.getoond)
+
+    def _wissel(self):
+        for plek, waarde in self.waarden.items():
+            _m, bw = _zoek(self.document, plek)
+            if bw is None:
+                continue
+            a = bw.getAnchor()
+            c = a.getText().createTextCursorByRange(a)
+            c.setString(waarde)
+            c.CharUnderline = ONDERSTIPPELD
+
+    def _terug(self):
+        for plek, plaatshouder in self.getoond.items():
+            _m, bw = _zoek(self.document, plek)
+            if bw is None:
+                continue
+            a = bw.getAnchor()
+            c = a.getText().createTextCursorByRange(a)
+            c.setString(plaatshouder)
+            try:
+                c.setPropertyToDefault("CharUnderline")
+            except Exception:
+                c.CharUnderline = 0
+
+    def _zet_terug(self):
+        self._zonder_ongedaan(self._terug)
+        self.getoond = {}
+        self.waarden = {}
+
+    def verberg(self):
+        if not self.getoond and self.onderschep is None:
+            return
+        doc = self.document
+        if self.opgeschort:
+            self.getoond, self.waarden, self.opgeschort = {}, {}, False
+        self._zet_terug()
+        try:
+            doc.removeDocumentEventListener(self)
+        except Exception:
+            pass
+        if self.onderschep is not None:
+            try:
+                self.frame.releaseDispatchProviderInterceptor(self.onderschep)
+            except Exception:
+                pass
+            self.onderschep = None
+        try:
+            doc.enableSetModified()
+        except Exception:
+            pass
+        if self.alleen_lezen_gezet:
+            try:
+                self._dispatch(".uno:EditDoc")
+            except Exception:
+                pass
+            self.alleen_lezen_gezet = False
+        try:
+            doc.setModified(False)
+        except Exception:
+            pass
+        try:
+            self.frame.contextChanged()
+        except Exception:
+            pass
+
+    # Vangnet: wordt er toch opgeslagen of gekopieerd (ook via de API, die
+    # .uno:Save omzeilt), dan gaan eerst de plaatshouders terug, en daarna weer
+    # de originelen. In een bestand komt zo nooit een origineel.
+    VOOR = ("OnSave", "OnSaveAs", "OnCopyTo")
+    NA = ("OnSaveDone", "OnSaveFailed", "OnSaveAsDone", "OnSaveAsFailed", "OnCopyToDone", "OnCopyToFailed")
+
+    def documentEventOccured(self, e):
+        if not self.getoond:
+            return
+        if e.EventName in self.VOOR and not self.opgeschort:
+            self._zonder_ongedaan(self._terug)
+            self.opgeschort = True
+        elif e.EventName in self.NA and self.opgeschort:
+            self._zonder_ongedaan(self._wissel)
+            self.opgeschort = False
+
+    def disposing(self, e):
+        pass

@@ -121,6 +121,8 @@ class Brug:
         self.hoofd = _Hoofdthread(ctx)
         # Klikken in plaatshouders en het rechtermuismenu (Writer). De brug ontstaat op de hoofdthread.
         self.klikken = None
+        # Originele waarden tijdelijk in de tekst (oa_pii.Inzage); dan kan bijna niets anders.
+        self.inzage = op.Inzage(ctx, document)
         try:
             self.klikken = op.Klikken(document)
         except Exception:
@@ -222,6 +224,8 @@ class Brug:
             raise
         except Exception:
             raise _Weg()
+        if self.inzage.actief and pad not in TIJDENS_INZAGE and not (pad == "/eigenschap" and methode == "GET"):
+            raise NietUitvoerbaar("De originele waarden staan nu in de tekst. Verberg ze eerst (Anonimiseren → Originelen verbergen).")
         if methode == "GET" and pad == "/status":
             return {"naam": h(lambda: od.naam_van(doc)), "versie": VERSIE, "soort": h(lambda: ob.soort_van(doc)),
                     "office": h(lambda: office_versie(self.ctx)), "os": besturingssysteem()}
@@ -276,6 +280,15 @@ class Brug:
             if methode == "POST" and pad == "/pii/definitief":
                 h(lambda: (op.zet_definitief if w else op.zet_definitief_bladen)(doc))
                 return {}
+            if methode == "POST" and pad == "/pii/inzien":
+                if not w:
+                    raise NietUitvoerbaar("Originelen in de tekst tonen kan alleen in Writer.")
+                return {"getoond": h(lambda: self.inzage.toon(lichaam["waarden"]))}
+            if methode == "POST" and pad == "/pii/verbergen":
+                h(lambda: self.inzage.verberg())
+                return {}
+            if methode == "GET" and pad == "/pii/inzage":
+                return {"actief": self.inzage.actief}
             if methode == "POST" and pad == "/pii/toon":
                 h(lambda: (op.toon if w else op.toon_bladen)(doc, lichaam["plek"]))
                 return {}
@@ -298,8 +311,19 @@ class Brug:
         return "%s/libreoffice#brug=%d&sleutel=%s" % (self.herkomst, self.poort, self.sleutel)
 
     def stop(self):
+        # Het paneel gaat dicht: de originelen niet in de tekst laten staan. stop() komt
+        # van LibreOffice zelf (het zijpaneel sluit), dus al op de hoofdthread.
+        if self.inzage.actief:
+            try:
+                self.inzage.verberg()
+            except Exception:
+                traceback.print_exc()
         self.server.shutdown()
         self.server.server_close()
+
+
+# Wat kan zolang de originelen in de tekst staan: niets dat de inhoud leest of wijzigt.
+TIJDENS_INZAGE = {"/status", "/pii/klik", "/pii/plekken", "/pii/toon", "/pii/inzien", "/pii/verbergen", "/pii/inzage", "/eigenschappen"}
 
 
 class _Onbekend(Exception):

@@ -49,6 +49,9 @@ export interface Tekstverwerker {
   herkleurPii?(plaatshouder: string, ppl: Ppl): Promise<void>;
   toonPiiPlek?(plek: string): void;
   bijPiiKlik?(terugroep: (p: PiiPlek) => void): () => void;
+  toonPiiOriginelen?(waarden: { plaatshouder: string; waarde: string }[]): Promise<number>;
+  verbergPiiOriginelen?(): Promise<void>;
+  piiOriginelenZichtbaar?(): Promise<boolean>;
   schrijfDocumenteigenschap?(naam: string, waarde: string): Promise<void>;
   leesEigenschappen?(): Promise<Documenteigenschappen>;
   schrijfStandaardeigenschap?(naam: Standaardeigenschap, waarde: string): Promise<void>;
@@ -96,6 +99,11 @@ export class StructuurAdapter implements Adapter {
         };
       if (tv.toonPiiPlek) this.toonPiiPlek = (p) => tv.toonPiiPlek!(p);
       if (tv.bijPiiKlik) this.bijPiiKlik = (t) => tv.bijPiiKlik!(t);
+      if (tv.toonPiiOriginelen && tv.verbergPiiOriginelen) {
+        this.toonPiiOriginelen = (w) => tv.toonPiiOriginelen!(w);
+        this.verbergPiiOriginelen = () => tv.verbergPiiOriginelen!();
+        if (tv.piiOriginelenZichtbaar) this.piiOriginelenZichtbaar = () => tv.piiOriginelenZichtbaar!();
+      }
     }
     if (tv.schrijfDocumenteigenschap) this.schrijfDocumenteigenschap = (n, w) => tv.schrijfDocumenteigenschap!(n, w);
     if (tv.leesEigenschappen) this.leesEigenschappen = () => tv.leesEigenschappen!();
@@ -103,6 +111,9 @@ export class StructuurAdapter implements Adapter {
   }
 
   readonly markeerPii?: Adapter["markeerPii"];
+  readonly toonPiiOriginelen?: Adapter["toonPiiOriginelen"];
+  readonly verbergPiiOriginelen?: Adapter["verbergPiiOriginelen"];
+  readonly piiOriginelenZichtbaar?: Adapter["piiOriginelenZichtbaar"];
   readonly leesPiiPlekken?: Adapter["leesPiiPlekken"];
   readonly herstelPii?: Adapter["herstelPii"];
   readonly zetPiiDefinitief?: Adapter["zetPiiDefinitief"];

@@ -126,6 +126,18 @@ export class LibreOfficeTekstverwerker implements Tekstverwerker {
     this.vraag("POST", "/pii/toon", { plek }).catch(() => undefined);
   }
 
+  async toonPiiOriginelen(waarden: { plaatshouder: string; waarde: string }[]): Promise<number> {
+    return (await this.vraag<{ getoond: number }>("POST", "/pii/inzien", { waarden })).getoond;
+  }
+
+  async verbergPiiOriginelen(): Promise<void> {
+    await this.vraag("POST", "/pii/verbergen", {});
+  }
+
+  async piiOriginelenZichtbaar(): Promise<boolean> {
+    return (await this.vraag<{ actief: boolean }>("GET", "/pii/inzage")).actief;
+  }
+
   /**
    * Klikken in een plaatshouder: de extensie onthoudt de laatste (selectie-
    * luisteraar); het paneel vraagt het elke 0,7 seconde op. Werkt via het
