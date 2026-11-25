@@ -2,6 +2,7 @@
 """Test oa_pii (plaatshouders met bladwijzers in Writer) tegen een echte LibreOffice (headless)."""
 import os
 import sys
+import tempfile
 import unittest
 
 import uno  # noqa: F401
@@ -68,9 +69,32 @@ class TestPii(unittest.TestCase):
             doc.close(True)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
+    def test_docx_heropenen(self):
+        """In een .docx bewaart LibreOffice de bladwijzers als oa-pii_p1_%5BPERSOON_1%5D; na heropenen
+        moeten de plaatshouders er nog zijn (anders herkent de assistent het document niet)."""
+        pad = os.path.join(tempfile.mkdtemp(), "geanonimiseerd.docx")
+        doc = self.desktop.loadComponentFromURL("private:factory/swriter", "_blank", 0, (p("Hidden", True),))
+        try:
+            doc.getText().setString("Mevrouw Jansen belt. Haar IBAN is NL91ABNA0417164300. Jansen komt.")
+            op.markeer(doc, [
+                {"van": "Jansen", "plaatshouder": "[PERSOON 11]", "ppl": 1, "voorvertoning": False},
+                {"van": "NL91ABNA0417164300", "plaatshouder": "[IBAN 1]", "ppl": 2, "voorvertoning": True},
+            ])
+            doc.storeToURL(uno.systemPathToFileUrl(pad), (p("FilterName", "MS Word 2007 XML"),))
+        finally:
+            doc.close(True)
+        doc = self.desktop.loadComponentFromURL(uno.systemPathToFileUrl(pad), "_blank", 0, (p("Hidden", True),))
+        try:
+            self.assertTrue(all(n.startswith("oa-pii_") for n in doc.getBookmarks().getElementNames() if n.startswith("oa-pii")))
+            plekken = op.lees_plekken(doc)
+            self.assertEqual([(x["plaatshouder"], x["voorvertoning"]) for x in plekken], [("[PERSOON 11]", False), ("[IBAN 1]", True), ("[PERSOON 11]", False)])
+            # Ook bewerken werkt op de bewaarde namen: definitief maken en een plek terugzetten.
+            op.zet_definitief(doc)
+            self.assertFalse(any(x["voorvertoning"] for x in op.lees_plekken(doc)))
+            op.herstel(doc, [{"plek": plekken[2]["plek"], "waarde": "Jansen"}])
+            self.assertEqual(doc.getText().getString(), "Mevrouw [PERSOON 11] belt. Haar IBAN is [IBAN 1]. Jansen komt.")
+        finally:
+            doc.close(True)
 
     def test_opmerkingen(self):
         """Een opmerking gaat mee met het bestand: ook daar plaatshouders. Zonder bladwijzers (die kunnen daar niet)."""
@@ -89,7 +113,7 @@ if __name__ == "__main__":
                 {"van": "Van der Meulen", "plaatshouder": "[PERSOON 2]", "ppl": 1, "voorvertoning": True},
             ])
             # Eén keer in de tekst, twee keer in de opmerking; de naam die alleen in de opmerking staat ook.
-            self.assertEqual([x["plaatshouder"] for x in nieuw], ["[PERSOON 1]", "[PERSOON 1]", "[PERSOON 1]", "[PERSOON 2]"])
+            self.assertEqual(sorted(x["plaatshouder"] for x in nieuw), ["[PERSOON 1]", "[PERSOON 1]", "[PERSOON 1]", "[PERSOON 2]"])
             self.assertEqual(opm.Content, "Klopt dit? [PERSOON 1] belde met dhr. [PERSOON 2] via 06-51209934. [PERSOON 1] weet het.")
             self.assertIn("[PERSOON 1]", t.getString())
             plekken = op.lees_plekken(doc)
@@ -209,3 +233,7 @@ class TestPiiBladen(unittest.TestCase):
             self.assertEqual(op.plek_bij_selectie(doc)["plaatshouder"], "[PERSOON 1]")
         finally:
             doc.close(True)
+
+
+if __name__ == "__main__":
+    unittest.main()

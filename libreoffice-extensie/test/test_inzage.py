@@ -144,9 +144,6 @@ class TestInzage(unittest.TestCase):
             nieuw.close(True)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class TestInzageBrug(unittest.TestCase):
     """Via de brug: tonen, dan weigert de brug alles wat de inhoud leest of wijzigt."""
@@ -199,3 +196,7 @@ class TestInzageBrug(unittest.TestCase):
             self.assertNotIn("Jansen", doc.getText().getString())
             self.assertFalse(doc.isReadonly())
             doc.close(True)
+
+
+if __name__ == "__main__":
+    unittest.main()

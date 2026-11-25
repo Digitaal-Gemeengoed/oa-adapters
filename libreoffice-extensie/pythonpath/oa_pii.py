@@ -24,6 +24,7 @@ krijgt "Anonimiseer selectie (Assistent)".
 import functools
 import json
 import re
+import urllib.parse
 
 import uno
 import unohelper
@@ -71,11 +72,20 @@ def _wis_opmaak(rng):
                 pass
 
 
+def _naam(naam):
+    """De naam van een bladwijzer zoals wij hem schrijven. In een .docx bewaart LibreOffice
+    "oa-pii p2 [PERSOON 11]" als "oa-pii_p2_%5BPERSOON_11%5D" (Word staat alleen letters,
+    cijfers en _ toe); bij het openen komt die vorm terug."""
+    if naam.startswith("oa-pii_"):
+        return urllib.parse.unquote(naam).replace("_", " ")
+    return naam
+
+
 def _bladwijzers(document):
     bw = document.getBookmarks()
     uit = []
     for naam in bw.getElementNames():
-        m = NAAM.match(naam)
+        m = NAAM.match(_naam(naam))
         if m:
             uit.append((m, bw.getByName(naam)))
     return uit

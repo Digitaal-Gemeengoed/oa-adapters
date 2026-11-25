@@ -1,5 +1,10 @@
 # Wijzigingen
 
+## 0.24.1 — 2026-11-25
+
+- **LibreOffice-extensie 0.19.1**: plaatshouders worden ook herkend in een document dat als .docx is opgeslagen. LibreOffice bewaart de bladwijzer `oa-pii p2 [PERSOON 11]` in een .docx als `oa-pii_p2_%5BPERSOON_11%5D`; na heropenen vond de extensie daardoor geen plaatshouders. Een geanonimiseerd .docx werd niet herkend, de lijst bleef (vrijwel) leeg, en originelen tonen, terugzetten en bevestigen werkten er niet.
+- Tests: `test_opmerkingen` draaide nooit (een `if __name__ == "__main__"` stond midden in de klasse) en had een verkeerde verwachting over de volgorde; beide hersteld. Nieuwe test voor een .docx die wordt opgeslagen en heropend.
+
 ## 0.24.0 — 2026-11-25
 
 - **LibreOffice-extensie 0.19.0**: de originelen tijdelijk in de tekst (Writer). Ontwerp: `oa-uitrol/docs/ontwerp/anonimiseren-in-het-document.md`.
